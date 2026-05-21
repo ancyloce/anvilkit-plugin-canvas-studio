@@ -2,6 +2,7 @@
 
 import {
 	type CanvasIR,
+	type CanvasPage,
 	createCanvasIR,
 	createPage,
 } from "@anvilkit/canvas-core";
@@ -16,6 +17,19 @@ import {
 } from "react";
 import type { CanvasModeStoreApi } from "../state/mode-store.js";
 import type { CanvasPersistenceAdapter } from "../types.js";
+
+/**
+ * Pure projection from a `CanvasIR.pages` array to the catalog-entry
+ * shape consumed by `@anvilkit/design-block`'s `resolveFields`. Exported
+ * for direct unit testing — the overlay calls this inline.
+ */
+export function pagesToCatalogEntries(
+	pages: ReadonlyArray<CanvasPage>,
+): ReadonlyArray<{ id: string; label?: string }> {
+	return pages.map((p) =>
+		p.name && p.name.length > 0 ? { id: p.id, label: p.name } : { id: p.id },
+	);
+}
 
 export interface CreateCanvasModeOverlayOptions {
 	readonly modeStore: CanvasModeStoreApi;
@@ -37,12 +51,25 @@ export interface CreateCanvasModeOverlayOptions {
 		ir: CanvasIR;
 		stage: Konva.Stage | null;
 	}) => Promise<void> | void;
+	/**
+	 * Optional callback fired whenever the overlay learns about the IR's
+	 * page list — once after the initial IR load, and again on every
+	 * `<CanvasStudio>` `onChange`. The plugin uses this to keep a
+	 * synchronous `designId → artboards[]` mirror up to date so the
+	 * Puck DesignBlock inspector's `artboardId` field can render as a
+	 * populated select.
+	 */
+	readonly onIRChange?: (
+		designId: string,
+		pages: ReadonlyArray<{ id: string; label?: string }>,
+	) => void;
 }
 
 export function createCanvasModeOverlay({
 	modeStore,
 	adapter,
 	onCommitAndClose,
+	onIRChange,
 }: CreateCanvasModeOverlayOptions): () => React.JSX.Element | null {
 	function CanvasModeOverlay() {
 		const state = useSyncExternalStore(
@@ -83,6 +110,7 @@ export function createCanvasModeOverlay({
 					});
 				setInitialIR(ir);
 				setCurrentIR(ir);
+				onIRChange?.(state.designId, pagesToCatalogEntries(ir.pages));
 			})();
 			return () => {
 				cancelled = true;
@@ -187,7 +215,10 @@ export function createCanvasModeOverlay({
 						initialIR.pages.some((p) => p.id === state.artboardId)
 							? { initialActivePageId: state.artboardId }
 							: {})}
-						onChange={(ir) => setCurrentIR(ir)}
+						onChange={(ir) => {
+							setCurrentIR(ir);
+							onIRChange?.(state.designId, pagesToCatalogEntries(ir.pages));
+						}}
 						onActivePageChange={(pageId) => {
 							activePageIdRef.current = pageId;
 						}}
