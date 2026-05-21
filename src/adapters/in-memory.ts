@@ -1,5 +1,8 @@
 import type { CanvasIR } from "@anvilkit/canvas-core";
-import type { CanvasDesignMeta, CanvasPersistenceAdapter } from "../types/types.js";
+import type {
+	CanvasDesignMeta,
+	CanvasPersistenceAdapter,
+} from "../types/types.js";
 
 /**
  * Transient in-process design store. The IR is cloned on save so callers

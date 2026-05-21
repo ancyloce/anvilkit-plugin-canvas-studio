@@ -1,6 +1,9 @@
 import type { CanvasIR } from "@anvilkit/canvas-core";
 import type { StudioPluginContext } from "@anvilkit/core";
-import type { CanvasSnapshotAdapter, CanvasSnapshotMeta } from "../types/types.js";
+import type {
+	CanvasSnapshotAdapter,
+	CanvasSnapshotMeta,
+} from "../types/types.js";
 
 export const CANVAS_KEYSPACE = "canvas";
 

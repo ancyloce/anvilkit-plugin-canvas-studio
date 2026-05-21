@@ -1,5 +1,8 @@
 import type { CanvasIR } from "@anvilkit/canvas-core";
-import type { CanvasDesignMeta, CanvasPersistenceAdapter } from "../types/types.js";
+import type {
+	CanvasDesignMeta,
+	CanvasPersistenceAdapter,
+} from "../types/types.js";
 
 export interface LocalStorageCanvasAdapterOptions {
 	readonly namespace: string;

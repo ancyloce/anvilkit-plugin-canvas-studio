@@ -6,10 +6,10 @@ import type {
 import { getArtboardCatalog, setArtboardCatalog } from "@anvilkit/design-block";
 import type Konva from "konva";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { inMemoryCanvasAdapter } from "../adapters/in-memory.js";
 import { MODE_SWITCH_ACTION_ID } from "../actions/mode-switch-action.js";
-import { createCanvasStudioPlugin } from "../plugin.js";
+import { inMemoryCanvasAdapter } from "../adapters/in-memory.js";
 import { CANVAS_STUDIO_PLUGIN_META } from "../meta.js";
+import { createCanvasStudioPlugin } from "../plugin.js";
 import { DESIGN_BLOCK_QUICK_ADD_ID } from "../quick-add/design-block-quick-add.js";
 
 vi.mock("@anvilkit/canvas-editor", () => ({

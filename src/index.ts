@@ -1,14 +1,14 @@
+export {
+	type CreateModeSwitchActionOptions,
+	createModeSwitchAction,
+	MODE_SWITCH_ACTION_ID,
+} from "./actions/mode-switch-action.js";
 export { inMemoryCanvasAdapter } from "./adapters/in-memory.js";
 export { inMemoryCanvasSnapshotAdapter } from "./adapters/in-memory-snapshot.js";
 export {
 	type LocalStorageCanvasAdapterOptions,
 	localStorageCanvasAdapter,
 } from "./adapters/local-storage.js";
-export {
-	MODE_SWITCH_ACTION_ID,
-	createModeSwitchAction,
-	type CreateModeSwitchActionOptions,
-} from "./actions/mode-switch-action.js";
 export {
 	type ArtboardPreviewFailure,
 	type ArtboardPreviewSuccess,
@@ -19,18 +19,24 @@ export {
 	exportAllArtboards,
 	exportCanvasToAsset,
 } from "./export/CanvasExportBridge.js";
+export { CANVAS_STUDIO_PLUGIN_META } from "./meta.js";
 export {
-	createCanvasModeOverlay,
 	type CreateCanvasModeOverlayOptions,
+	createCanvasModeOverlay,
 } from "./overlays/CanvasModeOverlay.js";
 export {
-	DESIGN_REFERENCE_PREFIX,
-	createDesignAssetResolver,
-} from "./resolvers/design-asset-resolver.js";
+	type CreateCanvasStudioPluginOptions,
+	createCanvasStudioPlugin,
+} from "./plugin.js";
 export {
-	type PreviewCache,
-	createPreviewCache,
-} from "./state/preview-cache.js";
+	type CreateDesignBlockQuickAddOptions,
+	createDesignBlockQuickAdd,
+	DESIGN_BLOCK_QUICK_ADD_ID,
+} from "./quick-add/design-block-quick-add.js";
+export {
+	createDesignAssetResolver,
+	DESIGN_REFERENCE_PREFIX,
+} from "./resolvers/design-asset-resolver.js";
 export {
 	CANVAS_KEYSPACE,
 	type CanvasSnapshotBridge,
@@ -41,20 +47,14 @@ export {
 	SAVE_REQUESTED_EVENT,
 } from "./state/canvas-snapshot-bridge.js";
 export {
-	createCanvasStudioPlugin,
-	type CreateCanvasStudioPluginOptions,
-} from "./plugin.js";
-export { CANVAS_STUDIO_PLUGIN_META } from "./meta.js";
-export {
-	DESIGN_BLOCK_QUICK_ADD_ID,
-	createDesignBlockQuickAdd,
-	type CreateDesignBlockQuickAddOptions,
-} from "./quick-add/design-block-quick-add.js";
-export {
 	type CanvasModeState,
 	type CanvasModeStoreApi,
 	createCanvasModeStore,
 } from "./state/mode-store.js";
+export {
+	createPreviewCache,
+	type PreviewCache,
+} from "./state/preview-cache.js";
 export type {
 	CanvasDesignMeta,
 	CanvasPersistenceAdapter,

@@ -1,20 +1,20 @@
-import { setArtboardCatalog } from "@anvilkit/design-block";
 import type {
 	StudioPlugin,
 	StudioPluginContext,
 	StudioPluginRegistration,
 	StudioSidebarUnregister,
 } from "@anvilkit/core";
+import { setArtboardCatalog } from "@anvilkit/design-block";
 import { createModeSwitchAction } from "./actions/mode-switch-action.js";
 import { inMemoryCanvasSnapshotAdapter } from "./adapters/in-memory-snapshot.js";
 import { exportAllArtboards } from "./export/CanvasExportBridge.js";
-import { createCanvasModeOverlay } from "./overlays/CanvasModeOverlay.js";
 import { CANVAS_STUDIO_PLUGIN_META } from "./meta.js";
+import { createCanvasModeOverlay } from "./overlays/CanvasModeOverlay.js";
 import { createDesignBlockQuickAdd } from "./quick-add/design-block-quick-add.js";
 import { createDesignAssetResolver } from "./resolvers/design-asset-resolver.js";
 import { createCanvasSnapshotBridge } from "./state/canvas-snapshot-bridge.js";
-import { createCanvasModeStore } from "./state/mode-store.js";
 import { createDesignCatalog } from "./state/design-catalog.js";
+import { createCanvasModeStore } from "./state/mode-store.js";
 import { createPreviewCache } from "./state/preview-cache.js";
 import type {
 	CanvasPersistenceAdapter,
