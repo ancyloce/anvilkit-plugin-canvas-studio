@@ -10,8 +10,13 @@ export {
 	type CreateModeSwitchActionOptions,
 } from "./actions/mode-switch-action.js";
 export {
+	type ArtboardPreviewFailure,
+	type ArtboardPreviewSuccess,
 	type CanvasExportInput,
 	type CanvasExportResult,
+	type ExportAllArtboardsInput,
+	type ExportAllArtboardsResult,
+	exportAllArtboards,
 	exportCanvasToAsset,
 } from "./export/CanvasExportBridge.js";
 export {

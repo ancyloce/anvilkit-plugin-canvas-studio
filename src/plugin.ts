@@ -7,7 +7,7 @@ import type {
 } from "@anvilkit/core";
 import { createModeSwitchAction } from "./actions/mode-switch-action.js";
 import { inMemoryCanvasSnapshotAdapter } from "./adapters/in-memory-snapshot.js";
-import { exportCanvasToAsset } from "./export/CanvasExportBridge.js";
+import { exportAllArtboards } from "./export/CanvasExportBridge.js";
 import { createCanvasModeOverlay } from "./overlays/CanvasModeOverlay.js";
 import { CANVAS_STUDIO_PLUGIN_META } from "./plugin-meta.js";
 import { createDesignBlockQuickAdd } from "./quick-add/design-block-quick-add.js";
@@ -86,22 +86,38 @@ export function createCanvasStudioPlugin(
 		},
 		async onCommitAndClose({ designId, puckNodeId, artboardId, ir, stage }) {
 			if (stage) {
-				const exported = exportCanvasToAsset({
+				const activePageId =
+					artboardId && artboardId.length > 0
+						? artboardId
+						: (ir.pages[0]?.id ?? "");
+				const exported = await exportAllArtboards({
 					stage,
+					activePageId,
+					ir,
 					designId,
 					previewCache,
-					...(artboardId ? { artboardId } : {}),
 					// Always seed the design's default bucket too so a bare
 					// `design://<designId>` reference (the legacy form) keeps
 					// rendering the most recently exported artboard.
 					writeDefault: true,
 				});
+				for (const failure of exported.errors) {
+					ctxRef.current?.log?.(
+						"warn",
+						"Canvas artboard preview rasterization failed.",
+						{
+							designId,
+							artboardId: failure.artboardId,
+							error: failure.error.message,
+						},
+					);
+				}
 				if (puckNodeId) {
 					patchDesignBlockPreview({
 						ctx: ctxRef.current,
 						puckNodeId,
-						previewUrl: exported.previewUrl,
-						artboardId: exported.artboardId,
+						previewUrl: exported.activePreview.previewUrl,
+						artboardId: exported.activePreview.artboardId,
 						componentType: designBlockComponentType,
 					});
 				}
