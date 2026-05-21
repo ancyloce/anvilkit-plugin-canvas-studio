@@ -45,6 +45,7 @@
 	},
 	"dependencies": {
 		"@anvilkit/core": "workspace:*",
+		"@anvilkit/design-block": "workspace:*",
 		"@anvilkit/plugin-asset-manager": "workspace:*"
 	},
 	"scripts": {
@@ -65,6 +66,7 @@
 		"@anvilkit/vitest-config": "workspace:*",
 		"@puckeditor/core": "^0.21.2",
 		"@rslib/core": "^0.21.5",
+		"@testing-library/react": "^16.3.2",
 		"@types/node": "^25.9.1",
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",

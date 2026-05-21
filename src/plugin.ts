@@ -1,3 +1,4 @@
+import { setArtboardCatalog } from "@anvilkit/design-block";
 import type {
 	StudioPlugin,
 	StudioPluginContext,
@@ -13,6 +14,7 @@ import { createDesignBlockQuickAdd } from "./quick-add/design-block-quick-add.js
 import { createDesignAssetResolver } from "./resolvers/design-asset-resolver.js";
 import { createCanvasSnapshotBridge } from "./state/canvas-snapshot-bridge.js";
 import { createCanvasModeStore } from "./state/mode-store.js";
+import { createDesignCatalog } from "./state/design-catalog.js";
 import { createPreviewCache } from "./state/preview-cache.js";
 import type {
 	CanvasPersistenceAdapter,
@@ -53,6 +55,7 @@ export function createCanvasStudioPlugin(
 ): StudioPlugin {
 	const modeStore = createCanvasModeStore();
 	const previewCache = createPreviewCache();
+	const designCatalog = createDesignCatalog();
 	const designAssetResolver = createDesignAssetResolver(previewCache);
 	const designBlockComponentType =
 		options.designBlockComponentType ?? "DesignBlock";
@@ -78,6 +81,9 @@ export function createCanvasStudioPlugin(
 	const CanvasModeOverlay = createCanvasModeOverlay({
 		modeStore,
 		adapter: options.adapter,
+		onIRChange(designId, pages) {
+			designCatalog.set(designId, pages);
+		},
 		async onCommitAndClose({ designId, puckNodeId, artboardId, ir, stage }) {
 			if (stage) {
 				const exported = exportCanvasToAsset({
@@ -138,11 +144,18 @@ export function createCanvasStudioPlugin(
 						ctx.registerAssetResolver?.(designAssetResolver);
 						quickAddUnregister =
 							ctx.registerLayerQuickAdd?.(designBlockQuickAdd) ?? null;
+						// Bridge the canvas IR's pages → DesignBlock's
+						// `artboardId` select. The overlay populates
+						// `designCatalog` via `onIRChange`; this lookup is the
+						// sync read path consulted by Puck's `resolveFields`.
+						setArtboardCatalog((designId) => designCatalog.get(designId) ?? []);
 					},
 					onDestroy() {
 						quickAddUnregister?.();
 						quickAddUnregister = null;
 						previewCache.clear();
+						designCatalog.clear();
+						setArtboardCatalog(null);
 						ctxRef.current = null;
 					},
 				},
