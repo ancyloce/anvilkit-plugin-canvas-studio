@@ -1,4 +1,5 @@
 export { inMemoryCanvasAdapter } from "./adapters/in-memory.js";
+export { inMemoryCanvasSnapshotAdapter } from "./adapters/in-memory-snapshot.js";
 export {
 	type LocalStorageCanvasAdapterOptions,
 	localStorageCanvasAdapter,
@@ -26,6 +27,15 @@ export {
 	createPreviewCache,
 } from "./state/preview-cache.js";
 export {
+	CANVAS_KEYSPACE,
+	type CanvasSnapshotBridge,
+	type CanvasVersionHistoryEventPayload,
+	type CreateCanvasSnapshotBridgeOptions,
+	createCanvasSnapshotBridge,
+	OPEN_REQUESTED_EVENT,
+	SAVE_REQUESTED_EVENT,
+} from "./state/canvas-snapshot-bridge.js";
+export {
 	createCanvasStudioPlugin,
 	type CreateCanvasStudioPluginOptions,
 } from "./plugin.js";
@@ -43,5 +53,7 @@ export {
 export type {
 	CanvasDesignMeta,
 	CanvasPersistenceAdapter,
+	CanvasSnapshotAdapter,
+	CanvasSnapshotMeta,
 	MaybePromise,
 } from "./types.js";
