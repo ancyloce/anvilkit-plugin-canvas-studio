@@ -5,15 +5,19 @@ export interface CreateModeSwitchActionOptions {
 	readonly modeStore: CanvasModeStoreApi;
 	/**
 	 * Optional resolver: given a Puck selection (or null when nothing is
-	 * selected) return the design id + nodeId the overlay should edit.
-	 * The default treats any selected `DesignBlock` node as the target
-	 * and otherwise allocates a new design id.
+	 * selected) return the design id + nodeId + (optional) artboardId the
+	 * overlay should edit. The default treats any selected `DesignBlock`
+	 * node as the target and otherwise allocates a new design id.
 	 */
 	readonly resolveTarget?: (selection: {
 		nodeId: string | null;
 		componentType: string | null;
 		props: Record<string, unknown> | null;
-	}) => { designId: string; puckNodeId: string | null };
+	}) => {
+		designId: string;
+		puckNodeId: string | null;
+		artboardId?: string | null;
+	};
 }
 
 export const MODE_SWITCH_ACTION_ID = "canvas-studio:toggle";
@@ -22,21 +26,30 @@ function defaultResolveTarget(selection: {
 	nodeId: string | null;
 	componentType: string | null;
 	props: Record<string, unknown> | null;
-}): { designId: string; puckNodeId: string | null } {
+}): { designId: string; puckNodeId: string | null; artboardId: string | null } {
 	if (selection.componentType === "DesignBlock") {
 		const existingId =
 			typeof selection.props?.designId === "string"
 				? (selection.props.designId as string)
 				: "";
 		if (existingId.length > 0) {
-			return { designId: existingId, puckNodeId: selection.nodeId };
+			const storedArtboard =
+				typeof selection.props?.artboardId === "string" &&
+				(selection.props.artboardId as string).length > 0
+					? (selection.props.artboardId as string)
+					: null;
+			return {
+				designId: existingId,
+				puckNodeId: selection.nodeId,
+				artboardId: storedArtboard,
+			};
 		}
 	}
 	const fresh =
 		typeof crypto !== "undefined" && "randomUUID" in crypto
 			? crypto.randomUUID()
 			: `design-${Date.now().toString(36)}`;
-	return { designId: fresh, puckNodeId: null };
+	return { designId: fresh, puckNodeId: null, artboardId: null };
 }
 
 export function createModeSwitchAction(
@@ -59,6 +72,9 @@ export function createModeSwitchAction(
 			options.modeStore.openEditor({
 				designId: target.designId,
 				puckNodeId: target.puckNodeId,
+				...(target.artboardId !== undefined
+					? { artboardId: target.artboardId }
+					: {}),
 			});
 		},
 	};
