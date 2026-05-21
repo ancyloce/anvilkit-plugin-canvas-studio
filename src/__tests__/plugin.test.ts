@@ -1,10 +1,23 @@
+import type {
+	CanvasGroupNode,
+	CanvasIR,
+	CanvasPage,
+} from "@anvilkit/canvas-core";
 import { getArtboardCatalog, setArtboardCatalog } from "@anvilkit/design-block";
+import type Konva from "konva";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { inMemoryCanvasAdapter } from "../adapters/in-memory.js";
 import { MODE_SWITCH_ACTION_ID } from "../actions/mode-switch-action.js";
 import { createCanvasStudioPlugin } from "../plugin.js";
 import { CANVAS_STUDIO_PLUGIN_META } from "../plugin-meta.js";
 import { DESIGN_BLOCK_QUICK_ADD_ID } from "../quick-add/design-block-quick-add.js";
+
+vi.mock("@anvilkit/canvas-editor", () => ({
+	rasterizePage: vi.fn(async (input: { page: CanvasPage }) => ({
+		url: `data:image/png;base64,RASTER-${input.page.id}`,
+		mimeType: "image/png" as const,
+	})),
+}));
 
 describe("createCanvasStudioPlugin", () => {
 	it("returns a plugin with the canonical meta", () => {
@@ -95,6 +108,75 @@ describe("createCanvasStudioPlugin", () => {
 			expect(getArtboardCatalog()).toBeNull();
 		});
 
+		it("commits every artboard's preview when onCommitAndClose fires with a multi-page IR", async () => {
+			const overlayModule = await import("../overlays/CanvasModeOverlay.js");
+			let capturedOptions:
+				| Parameters<typeof overlayModule.createCanvasModeOverlay>[0]
+				| null = null;
+			const spy = vi
+				.spyOn(overlayModule, "createCanvasModeOverlay")
+				.mockImplementation((opts) => {
+					capturedOptions = opts;
+					return () => null;
+				});
+			const resolverModule = await import(
+				"../resolvers/design-asset-resolver.js"
+			);
+			let capturedCache:
+				| import("../state/preview-cache.js").PreviewCache
+				| null = null;
+			const resolverSpy = vi
+				.spyOn(resolverModule, "createDesignAssetResolver")
+				.mockImplementation((cache) => {
+					capturedCache = cache;
+					// Return a stub that satisfies the AssetResolver shape (we never call it).
+					return {
+						scheme: "design",
+						resolve: () => null,
+					} as unknown as ReturnType<
+						typeof resolverModule.createDesignAssetResolver
+					>;
+				});
+			try {
+				const plugin = createCanvasStudioPlugin({
+					adapter: inMemoryCanvasAdapter(),
+				});
+				const ctx = makeFakeCtx();
+				const registration = plugin.register(ctx);
+				registration.hooks?.onInit?.(ctx);
+
+				expect(capturedOptions).not.toBeNull();
+				expect(capturedCache).not.toBeNull();
+				const stage = {
+					toDataURL: vi.fn(() => "data:image/png;base64,ACTIVE"),
+				} as unknown as Konva.Stage;
+				const ir = makeIR(["p1", "p2", "p3"]);
+				await capturedOptions?.onCommitAndClose?.({
+					designId: "d1",
+					puckNodeId: null,
+					artboardId: "p1",
+					ir,
+					stage,
+				});
+
+				// All three artboards must have a cache entry, and the default
+				// bucket must resolve to the active artboard's preview.
+				expect(capturedCache?.get("d1", "p1")).toBe(
+					"data:image/png;base64,ACTIVE",
+				);
+				expect(capturedCache?.get("d1", "p2")).toBe(
+					"data:image/png;base64,RASTER-p2",
+				);
+				expect(capturedCache?.get("d1", "p3")).toBe(
+					"data:image/png;base64,RASTER-p3",
+				);
+				expect(capturedCache?.get("d1")).toBe("data:image/png;base64,ACTIVE");
+			} finally {
+				spy.mockRestore();
+				resolverSpy.mockRestore();
+			}
+		});
+
 		it("end-to-end: overlay onIRChange → designCatalog → getArtboardCatalog round-trip", async () => {
 			// Spy on `createCanvasModeOverlay` to capture the options the
 			// plugin passes (including the `onIRChange` callback we wire to
@@ -141,6 +223,37 @@ describe("createCanvasStudioPlugin", () => {
 		});
 	});
 });
+
+function makePage(id: string): CanvasPage {
+	const root: CanvasGroupNode = {
+		id: `${id}-root`,
+		type: "group",
+		transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+		bounds: { width: 800, height: 600 },
+		zIndex: 0,
+		children: [],
+	};
+	return {
+		id,
+		size: { width: 800, height: 600 },
+		background: { kind: "solid", value: "#ffffff" },
+		root,
+	};
+}
+
+function makeIR(pageIds: ReadonlyArray<string>): CanvasIR {
+	return {
+		version: "1",
+		id: "d1",
+		title: "Test",
+		pages: pageIds.map(makePage),
+		assets: {},
+		metadata: {
+			createdAt: "2026-01-01T00:00:00.000Z",
+			updatedAt: "2026-01-01T00:00:00.000Z",
+		},
+	};
+}
 
 function makeFakeCtx() {
 	return {
