@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { getArtboardCatalog, setArtboardCatalog } from "@anvilkit/design-block";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { inMemoryCanvasAdapter } from "../adapters/in-memory.js";
 import { MODE_SWITCH_ACTION_ID } from "../actions/mode-switch-action.js";
 import { createCanvasStudioPlugin } from "../plugin.js";
@@ -52,6 +53,47 @@ describe("createCanvasStudioPlugin", () => {
 		registration.hooks?.onInit?.(ctx);
 		registration.hooks?.onDestroy?.(ctx);
 		expect(unregister).toHaveBeenCalledTimes(1);
+	});
+
+	describe("artboard catalog wiring", () => {
+		afterEach(() => {
+			// Reset the design-block module singleton so tests don't leak.
+			setArtboardCatalog(null);
+		});
+
+		it("registers a catalog function with design-block on onInit", () => {
+			const plugin = createCanvasStudioPlugin({
+				adapter: inMemoryCanvasAdapter(),
+			});
+			const ctx = makeFakeCtx();
+			const registration = plugin.register(ctx);
+			expect(getArtboardCatalog()).toBeNull();
+			registration.hooks?.onInit?.(ctx);
+			expect(typeof getArtboardCatalog()).toBe("function");
+		});
+
+		it("registered catalog returns [] for designs the overlay has never loaded", () => {
+			const plugin = createCanvasStudioPlugin({
+				adapter: inMemoryCanvasAdapter(),
+			});
+			const ctx = makeFakeCtx();
+			const registration = plugin.register(ctx);
+			registration.hooks?.onInit?.(ctx);
+			const fn = getArtboardCatalog();
+			expect(fn?.("untouched")).toEqual([]);
+		});
+
+		it("clears the catalog on onDestroy", () => {
+			const plugin = createCanvasStudioPlugin({
+				adapter: inMemoryCanvasAdapter(),
+			});
+			const ctx = makeFakeCtx();
+			const registration = plugin.register(ctx);
+			registration.hooks?.onInit?.(ctx);
+			expect(getArtboardCatalog()).not.toBeNull();
+			registration.hooks?.onDestroy?.(ctx);
+			expect(getArtboardCatalog()).toBeNull();
+		});
 	});
 });
 
