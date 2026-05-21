@@ -16,7 +16,7 @@ import {
 	useSyncExternalStore,
 } from "react";
 import type { CanvasModeStoreApi } from "../state/mode-store.js";
-import type { CanvasPersistenceAdapter } from "../types.js";
+import type { CanvasPersistenceAdapter } from "../types/types.js";
 
 /**
  * Pure projection from a `CanvasIR.pages` array to the catalog-entry

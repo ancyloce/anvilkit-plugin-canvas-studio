@@ -9,7 +9,7 @@ import { createModeSwitchAction } from "./actions/mode-switch-action.js";
 import { inMemoryCanvasSnapshotAdapter } from "./adapters/in-memory-snapshot.js";
 import { exportAllArtboards } from "./export/CanvasExportBridge.js";
 import { createCanvasModeOverlay } from "./overlays/CanvasModeOverlay.js";
-import { CANVAS_STUDIO_PLUGIN_META } from "./plugin-meta.js";
+import { CANVAS_STUDIO_PLUGIN_META } from "./meta.js";
 import { createDesignBlockQuickAdd } from "./quick-add/design-block-quick-add.js";
 import { createDesignAssetResolver } from "./resolvers/design-asset-resolver.js";
 import { createCanvasSnapshotBridge } from "./state/canvas-snapshot-bridge.js";
@@ -19,7 +19,7 @@ import { createPreviewCache } from "./state/preview-cache.js";
 import type {
 	CanvasPersistenceAdapter,
 	CanvasSnapshotAdapter,
-} from "./types.js";
+} from "./types/types.js";
 
 export interface CreateCanvasStudioPluginOptions {
 	readonly adapter: CanvasPersistenceAdapter;

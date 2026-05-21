@@ -29,7 +29,7 @@ import {
 	pagesToCatalogEntries,
 } from "../overlays/CanvasModeOverlay.js";
 import { createCanvasModeStore } from "../state/mode-store.js";
-import type { CanvasPersistenceAdapter } from "../types.js";
+import type { CanvasPersistenceAdapter } from "../types/types.js";
 
 function makeAdapter(initial: CanvasIR | null): CanvasPersistenceAdapter {
 	return {

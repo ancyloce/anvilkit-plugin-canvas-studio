@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { inMemoryCanvasAdapter } from "../adapters/in-memory.js";
 import { MODE_SWITCH_ACTION_ID } from "../actions/mode-switch-action.js";
 import { createCanvasStudioPlugin } from "../plugin.js";
-import { CANVAS_STUDIO_PLUGIN_META } from "../plugin-meta.js";
+import { CANVAS_STUDIO_PLUGIN_META } from "../meta.js";
 import { DESIGN_BLOCK_QUICK_ADD_ID } from "../quick-add/design-block-quick-add.js";
 
 vi.mock("@anvilkit/canvas-editor", () => ({

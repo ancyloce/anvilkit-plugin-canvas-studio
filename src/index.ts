@@ -44,7 +44,7 @@ export {
 	createCanvasStudioPlugin,
 	type CreateCanvasStudioPluginOptions,
 } from "./plugin.js";
-export { CANVAS_STUDIO_PLUGIN_META } from "./plugin-meta.js";
+export { CANVAS_STUDIO_PLUGIN_META } from "./meta.js";
 export {
 	DESIGN_BLOCK_QUICK_ADD_ID,
 	createDesignBlockQuickAdd,
@@ -61,4 +61,4 @@ export type {
 	CanvasSnapshotAdapter,
 	CanvasSnapshotMeta,
 	MaybePromise,
-} from "./types.js";
+} from "./types/types.js";

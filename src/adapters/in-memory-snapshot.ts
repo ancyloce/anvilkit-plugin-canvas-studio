@@ -1,5 +1,5 @@
 import type { CanvasIR } from "@anvilkit/canvas-core";
-import type { CanvasSnapshotAdapter, CanvasSnapshotMeta } from "../types.js";
+import type { CanvasSnapshotAdapter, CanvasSnapshotMeta } from "../types/types.js";
 
 interface StoredSnapshot {
 	readonly meta: CanvasSnapshotMeta;
