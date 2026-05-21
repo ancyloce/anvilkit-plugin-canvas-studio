@@ -1,0 +1,78 @@
+{
+	"name": "@anvilkit/plugin-canvas-studio",
+	"version": "0.1.0",
+	"description": "Canvas Studio integration plugin for Anvilkit Studio — mode-switch, design-block bridge, design:// asset resolver.",
+	"type": "module",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			}
+		},
+		"./*": {
+			"import": {
+				"types": "./dist/*.d.ts",
+				"default": "./dist/*.js"
+			},
+			"require": {
+				"types": "./dist/*.d.cts",
+				"default": "./dist/*.cjs"
+			}
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"license": "MIT",
+	"sideEffects": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"peerDependencies": {
+		"@anvilkit/canvas-core": "workspace:*",
+		"@anvilkit/canvas-editor": "workspace:*",
+		"@puckeditor/core": "^0.21.2",
+		"react": "^18.2.0 || ^19.0.0",
+		"react-dom": "^18.2.0 || ^19.0.0"
+	},
+	"dependencies": {
+		"@anvilkit/core": "workspace:*",
+		"@anvilkit/plugin-asset-manager": "workspace:*"
+	},
+	"scripts": {
+		"build": "rslib build",
+		"dev": "rslib build --watch",
+		"lint": "pnpm exec biome lint package.json tsconfig.json rslib.config.ts vitest.config.ts src",
+		"format": "pnpm exec biome check --write package.json tsconfig.json rslib.config.ts vitest.config.ts src",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"publint": "publint"
+	},
+	"devDependencies": {
+		"@anvilkit/biome-config": "workspace:*",
+		"@anvilkit/canvas-core": "workspace:*",
+		"@anvilkit/canvas-editor": "workspace:*",
+		"@anvilkit/typescript-config": "workspace:*",
+		"@anvilkit/vitest-config": "workspace:*",
+		"@puckeditor/core": "^0.21.2",
+		"@rslib/core": "^0.20.1",
+		"@types/node": "^22.15.3",
+		"@types/react": "19.2.14",
+		"@types/react-dom": "19.2.3",
+		"konva": "^10.3.0",
+		"publint": "^0.3.18",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
+		"typescript": "6.0.2",
+		"vitest": "^4.1.4"
+	}
+}
