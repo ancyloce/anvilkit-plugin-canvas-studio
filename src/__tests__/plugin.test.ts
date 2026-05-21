@@ -94,6 +94,51 @@ describe("createCanvasStudioPlugin", () => {
 			registration.hooks?.onDestroy?.(ctx);
 			expect(getArtboardCatalog()).toBeNull();
 		});
+
+		it("end-to-end: overlay onIRChange → designCatalog → getArtboardCatalog round-trip", async () => {
+			// Spy on `createCanvasModeOverlay` to capture the options the
+			// plugin passes (including the `onIRChange` callback we wire to
+			// `designCatalog.set`). This proves the binding between the
+			// overlay's IR feed and the catalog reads done via
+			// `setArtboardCatalog`, which the previous tests cover only at
+			// the endpoints.
+			const overlayModule = await import("../overlays/CanvasModeOverlay.js");
+			let capturedOptions:
+				| Parameters<typeof overlayModule.createCanvasModeOverlay>[0]
+				| null = null;
+			const spy = vi
+				.spyOn(overlayModule, "createCanvasModeOverlay")
+				.mockImplementation((opts) => {
+					capturedOptions = opts;
+					return () => null;
+				});
+
+			try {
+				const plugin = createCanvasStudioPlugin({
+					adapter: inMemoryCanvasAdapter(),
+				});
+				const ctx = makeFakeCtx();
+				const registration = plugin.register(ctx);
+				registration.hooks?.onInit?.(ctx);
+
+				expect(capturedOptions).not.toBeNull();
+				expect(typeof capturedOptions?.onIRChange).toBe("function");
+
+				capturedOptions?.onIRChange?.("d1", [
+					{ id: "p1", label: "Cover" },
+					{ id: "p2" },
+				]);
+				const fn = getArtboardCatalog();
+				expect(fn?.("d1")).toEqual([
+					{ id: "p1", label: "Cover" },
+					{ id: "p2" },
+				]);
+				// Untouched designs still return [].
+				expect(fn?.("other")).toEqual([]);
+			} finally {
+				spy.mockRestore();
+			}
+		});
 	});
 });
 
