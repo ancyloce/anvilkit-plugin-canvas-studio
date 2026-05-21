@@ -33,6 +33,7 @@ export interface CreateCanvasModeOverlayOptions {
 	readonly onCommitAndClose?: (input: {
 		designId: string;
 		puckNodeId: string | null;
+		artboardId: string | null;
 		ir: CanvasIR;
 		stage: Konva.Stage | null;
 	}) => Promise<void> | void;
@@ -53,6 +54,12 @@ export function createCanvasModeOverlay({
 		const [currentIR, setCurrentIR] = useState<CanvasIR | null>(null);
 		const [busy, setBusy] = useState(false);
 		const stageRef = useRef<Konva.Stage | null>(null);
+		// CanvasStudio's first `onActivePageChange` fires synchronously
+		// after mount with the resolved active page id (validated initial,
+		// or `pages[0].id`), so we don't need to seed this ref from
+		// `state.artboardId` — that would carry a stale value if the
+		// stored artboardId no longer exists in `initialIR.pages`.
+		const activePageIdRef = useRef<string | null>(null);
 
 		// Load the design IR from the adapter whenever the overlay opens
 		// with a designId. If the adapter has no record yet, mint a fresh
@@ -139,6 +146,7 @@ export function createCanvasModeOverlay({
 					await onCommitAndClose?.({
 						designId: state.designId,
 						puckNodeId: state.puckNodeId,
+						artboardId: activePageIdRef.current,
 						ir: currentIR,
 						stage: stageRef.current,
 					});
@@ -175,7 +183,14 @@ export function createCanvasModeOverlay({
 				<div style={{ flex: 1, overflow: "auto", background: "#ffffff" }}>
 					<CanvasStudio
 						initialIR={initialIR}
+						{...(state.artboardId &&
+						initialIR.pages.some((p) => p.id === state.artboardId)
+							? { initialActivePageId: state.artboardId }
+							: {})}
 						onChange={(ir) => setCurrentIR(ir)}
+						onActivePageChange={(pageId) => {
+							activePageIdRef.current = pageId;
+						}}
 						onStageReady={(stage) => {
 							stageRef.current = stage;
 						}}
