@@ -58,7 +58,8 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"publint": "publint"
+		"publint": "publint",
+		"size": "size-limit"
 	},
 	"devDependencies": {
 		"@anvilkit/biome-config": "workspace:*",

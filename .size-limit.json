@@ -1,0 +1,19 @@
+[
+	{
+		"name": "@anvilkit/plugin-canvas-studio",
+		"path": "dist/index.js",
+		"limit": "7 KB",
+		"gzip": true,
+		"ignore": [
+			"react",
+			"react-dom",
+			"@puckeditor/core",
+			"@anvilkit/canvas-core",
+			"@anvilkit/canvas-editor",
+			"@anvilkit/core",
+			"@anvilkit/design-block",
+			"@anvilkit/plugin-asset-manager",
+			"lucide-react"
+		]
+	}
+]
