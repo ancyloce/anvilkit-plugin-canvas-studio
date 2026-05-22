@@ -8,7 +8,7 @@ import {
 } from "@anvilkit/canvas-core";
 import { CanvasStudio } from "@anvilkit/canvas-editor";
 import type Konva from "konva";
-import {
+import React, {
 	useEffect,
 	useMemo,
 	useRef,
