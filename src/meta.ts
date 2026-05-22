@@ -1,4 +1,6 @@
 import type { StudioPluginMeta } from "@anvilkit/core";
+import { Frame } from "lucide-react";
+import { createElement } from "react";
 
 import config from "../meta/config.json";
 import packageJson from "../package.json";
@@ -8,4 +10,5 @@ import packageJson from "../package.json";
 export const CANVAS_STUDIO_PLUGIN_META: StudioPluginMeta = {
 	...config,
 	version: packageJson.version,
+	icon: createElement(Frame),
 };

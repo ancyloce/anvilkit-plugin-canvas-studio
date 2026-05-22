@@ -47,7 +47,8 @@
 	"dependencies": {
 		"@anvilkit/core": "workspace:*",
 		"@anvilkit/design-block": "workspace:*",
-		"@anvilkit/plugin-asset-manager": "workspace:*"
+		"@anvilkit/plugin-asset-manager": "workspace:*",
+		"lucide-react": "^1.16.0"
 	},
 	"scripts": {
 		"build": "rslib build",
