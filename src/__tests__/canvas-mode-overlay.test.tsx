@@ -3,6 +3,10 @@ import {
 	createCanvasIR,
 	createPage,
 } from "@anvilkit/canvas-core";
+import {
+	StudioConfigProvider,
+	createStudioConfig,
+} from "@anvilkit/core/config";
 import { act, render, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -50,6 +54,19 @@ function makeIR(designId: string, pageIds: ReadonlyArray<[string, string?]>) {
 	});
 }
 
+// The overlay reads `useStudioConfig()` (I3-4), so it must render inside a
+// StudioConfigProvider — mirroring production, where it mounts inside <Studio>.
+function renderOverlay(
+	Overlay: ReturnType<typeof createCanvasModeOverlay>,
+	config = createStudioConfig(),
+) {
+	return render(
+		<StudioConfigProvider config={config}>
+			<Overlay />
+		</StudioConfigProvider>,
+	);
+}
+
 describe("pagesToCatalogEntries", () => {
 	it("returns id-only entries when pages have no name", () => {
 		const ir = makeIR("d1", [["a"], ["b"]]);
@@ -92,7 +109,7 @@ describe("CanvasModeOverlay onIRChange", () => {
 			onIRChange,
 		});
 
-		render(<Overlay />);
+		renderOverlay(Overlay);
 		act(() => {
 			modeStore.openEditor({ designId: "d1", puckNodeId: null });
 		});
@@ -117,7 +134,7 @@ describe("CanvasModeOverlay onIRChange", () => {
 			onIRChange,
 		});
 
-		render(<Overlay />);
+		renderOverlay(Overlay);
 		act(() => {
 			modeStore.openEditor({ designId: "d2", puckNodeId: null });
 		});
@@ -152,7 +169,7 @@ describe("CanvasModeOverlay onIRChange", () => {
 			onIRChange,
 		});
 
-		render(<Overlay />);
+		renderOverlay(Overlay);
 		act(() => {
 			modeStore.openEditor({ designId: "fresh", puckNodeId: null });
 		});
@@ -162,5 +179,60 @@ describe("CanvasModeOverlay onIRChange", () => {
 		});
 		// Default minted IR uses `${designId}-page` as the single page id.
 		expect(onIRChange).toHaveBeenCalledWith("fresh", [{ id: "fresh-page" }]);
+	});
+});
+
+describe("CanvasModeOverlay brandKit (I3-4)", () => {
+	beforeEach(() => {
+		capturedStudioProps = null;
+	});
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("maps the Studio config brandKit (+ branding.primaryColor) onto the CanvasStudio brandKit prop", async () => {
+		const modeStore = createCanvasModeStore();
+		const adapter = makeAdapter(makeIR("d3", [["p1"]]));
+		const Overlay = createCanvasModeOverlay({ modeStore, adapter });
+		const config = createStudioConfig({
+			branding: { primaryColor: "#2563eb" },
+			brandKit: {
+				colors: [{ name: "Accent", value: "#f59e0b" }],
+				fonts: ["Inter", "Poppins"],
+			},
+		});
+
+		renderOverlay(Overlay, config);
+		act(() => {
+			modeStore.openEditor({ designId: "d3", puckNodeId: null });
+		});
+
+		await waitFor(() => {
+			expect(capturedStudioProps).not.toBeNull();
+		});
+		// primaryColor is prepended as "Primary"; explicit swatches follow.
+		expect(capturedStudioProps?.brandKit).toEqual({
+			colors: [
+				{ name: "Primary", value: "#2563eb" },
+				{ name: "Accent", value: "#f59e0b" },
+			],
+			fonts: ["Inter", "Poppins"],
+		});
+	});
+
+	it("passes an empty brand kit when the host configures none", async () => {
+		const modeStore = createCanvasModeStore();
+		const adapter = makeAdapter(makeIR("d4", [["p1"]]));
+		const Overlay = createCanvasModeOverlay({ modeStore, adapter });
+
+		renderOverlay(Overlay);
+		act(() => {
+			modeStore.openEditor({ designId: "d4", puckNodeId: null });
+		});
+
+		await waitFor(() => {
+			expect(capturedStudioProps).not.toBeNull();
+		});
+		expect(capturedStudioProps?.brandKit).toEqual({ colors: [], fonts: [] });
 	});
 });
