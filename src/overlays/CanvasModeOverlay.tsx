@@ -7,7 +7,10 @@ import {
 	createPage,
 } from "@anvilkit/canvas-core";
 import { CanvasStudio } from "@anvilkit/canvas-editor";
-import { useStudioConfig } from "@anvilkit/core";
+// Import from the `/config` subpath (not the main barrel) so the plugin
+// doesn't pull in core's dnd-kit-laden sidebar graph — keeps the bundle lean
+// and the jsdom test env free of ResizeObserver requirements.
+import { useStudioConfig } from "@anvilkit/core/config";
 import type Konva from "konva";
 import React, {
 	useEffect,
