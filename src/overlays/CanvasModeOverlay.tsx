@@ -7,6 +7,7 @@ import {
 	createPage,
 } from "@anvilkit/canvas-core";
 import { CanvasStudio } from "@anvilkit/canvas-editor";
+import { useStudioConfig } from "@anvilkit/core";
 import type Konva from "konva";
 import React, {
 	useEffect,
@@ -15,6 +16,7 @@ import React, {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { studioConfigToBrandKit } from "../brand/studio-config-to-brand-kit.js";
 import type { CanvasModeStoreApi } from "../state/mode-store.js";
 import type { CanvasPersistenceAdapter } from "../types/types.js";
 
@@ -77,6 +79,11 @@ export function createCanvasModeOverlay({
 			modeStore.getState,
 			modeStore.getState,
 		);
+		// Shared brand colors + fonts from the host's Studio config (I3-4).
+		// `studioConfigToBrandKit` is a stable module-level selector, so the
+		// derived kit is memoized by config identity and passed straight to
+		// the canvas editor's `brandKit` prop.
+		const brandKit = useStudioConfig(studioConfigToBrandKit);
 		const [initialIR, setInitialIR] = useState<CanvasIR | null>(null);
 		const [currentIR, setCurrentIR] = useState<CanvasIR | null>(null);
 		const [busy, setBusy] = useState(false);
@@ -211,6 +218,7 @@ export function createCanvasModeOverlay({
 				<div style={{ flex: 1, overflow: "auto", background: "#ffffff" }}>
 					<CanvasStudio
 						initialIR={initialIR}
+						brandKit={brandKit}
 						{...(state.artboardId &&
 						initialIR.pages.some((p) => p.id === state.artboardId)
 							? { initialActivePageId: state.artboardId }
