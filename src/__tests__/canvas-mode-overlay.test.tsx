@@ -217,6 +217,38 @@ describe("CanvasModeOverlay editor shell (regression)", () => {
 		// Per-design store id isolates the workspace UI slice (active tab, etc.).
 		expect(capturedStudioProps?.storeId).toBe("d-shell");
 	});
+
+	// The image tool calls `onPickAsset()` for an asset id, then renders the
+	// placed node from `ir.assets[id]` (no command can add an asset to a live
+	// scene). So the overlay must (1) forward the host picker and (2) merge
+	// host `seedAssets` into the opened design, or placed images never resolve.
+	it("forwards onPickAsset and merges seedAssets into the opened design", async () => {
+		const onPickAsset = vi.fn(async () => "host-img");
+		const seedAssets = {
+			"host-img": { id: "host-img", uri: "data:image/png;base64,AAAA" },
+		};
+		const modeStore = createCanvasModeStore();
+		const adapter = makeAdapter(makeIR("d-asset", [["p1"]]));
+		const Overlay = createCanvasModeOverlay({
+			modeStore,
+			adapter,
+			onPickAsset,
+			seedAssets,
+		});
+
+		renderOverlay(Overlay);
+		act(() => {
+			modeStore.openEditor({ designId: "d-asset", puckNodeId: null });
+		});
+
+		await waitFor(() => {
+			expect(capturedStudioProps).not.toBeNull();
+		});
+		expect(capturedStudioProps?.onPickAsset).toBe(onPickAsset);
+		expect(capturedStudioProps?.initialIR.assets["host-img"]).toEqual(
+			seedAssets["host-img"],
+		);
+	});
 });
 
 describe("CanvasModeOverlay brandKit (I3-4)", () => {

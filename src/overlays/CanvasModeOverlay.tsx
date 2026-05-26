@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	type CanvasAssetRef,
 	type CanvasIR,
 	type CanvasPage,
 	createCanvasIR,
@@ -68,6 +69,21 @@ export interface CreateCanvasModeOverlayOptions {
 		designId: string,
 		pages: ReadonlyArray<{ id: string; label?: string }>,
 	) => void;
+	/**
+	 * Host image picker for the editor's `image` tool. The tool calls this to
+	 * resolve the asset id to place; resolve with an id present in the design's
+	 * `assets` (see {@link seedAssets}), or reject / resolve `""` to cancel.
+	 * Omit it to leave the image tool inert (it throws if used).
+	 */
+	readonly onPickAsset?: () => Promise<string>;
+	/**
+	 * Host asset-library entries merged into every opened design's `assets`
+	 * (the design's own entries win on id collision). Canvas commands cannot
+	 * add an asset to a live scene, so a placed image only renders if its
+	 * asset is present at mount — this is how a host makes its library
+	 * placeable through {@link onPickAsset} in the overlay.
+	 */
+	readonly seedAssets?: Readonly<Record<string, CanvasAssetRef>>;
 }
 
 export function createCanvasModeOverlay({
@@ -75,6 +91,8 @@ export function createCanvasModeOverlay({
 	adapter,
 	onCommitAndClose,
 	onIRChange,
+	onPickAsset,
+	seedAssets,
 }: CreateCanvasModeOverlayOptions): () => React.JSX.Element | null {
 	function CanvasModeOverlay() {
 		const state = useSyncExternalStore(
@@ -111,13 +129,18 @@ export function createCanvasModeOverlay({
 			(async () => {
 				const stored = await Promise.resolve(adapter.load(state.designId));
 				if (cancelled) return;
-				const ir =
+				const loaded =
 					stored ??
 					createCanvasIR({
 						id: state.designId,
 						title: state.designId,
 						pages: [createPage({ id: `${state.designId}-page` })],
 					});
+				// Make host asset-library entries placeable (the design's own
+				// assets win on id collision so we never clobber stored bytes).
+				const ir = seedAssets
+					? { ...loaded, assets: { ...seedAssets, ...loaded.assets } }
+					: loaded;
 				setInitialIR(ir);
 				setCurrentIR(ir);
 				onIRChange?.(state.designId, pagesToCatalogEntries(ir.pages));
@@ -191,6 +214,8 @@ export function createCanvasModeOverlay({
 					// the Puck DesignBlock) via `handleBack`. The `busy` guard keeps
 					// a double-click from committing twice.
 					onBack={handleBack}
+					// Host image picker for the `image` tool (undefined → tool inert).
+					onPickAsset={onPickAsset}
 					{...(state.artboardId &&
 					initialIR.pages.some((p) => p.id === state.artboardId)
 						? { initialActivePageId: state.artboardId }

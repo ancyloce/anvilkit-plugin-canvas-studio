@@ -1,3 +1,4 @@
+import type { CanvasAssetRef } from "@anvilkit/canvas-core";
 import type {
 	StudioPlugin,
 	StudioPluginContext,
@@ -37,6 +38,20 @@ export interface CreateCanvasStudioPluginOptions {
 	 * and pass it here.
 	 */
 	readonly canvasSnapshotAdapter?: CanvasSnapshotAdapter;
+	/**
+	 * Host image picker for the canvas editor's `image` tool, surfaced through
+	 * the overlay's `<CanvasWorkspace>`. Resolve with an asset id present in the
+	 * design (seed library entries via {@link seedAssets}); reject or resolve
+	 * `""` to cancel. Omit it to leave the image tool inert.
+	 */
+	readonly onPickAsset?: () => Promise<string>;
+	/**
+	 * Host asset-library entries merged into every design the overlay opens, so
+	 * ids returned by {@link onPickAsset} resolve to renderable bytes (canvas
+	 * commands cannot add assets to a live scene). The design's own assets win
+	 * on id collision.
+	 */
+	readonly seedAssets?: Readonly<Record<string, CanvasAssetRef>>;
 }
 
 /**
@@ -85,6 +100,8 @@ export function createCanvasStudioPlugin(
 	const CanvasModeOverlay = createCanvasModeOverlay({
 		modeStore,
 		adapter: options.adapter,
+		onPickAsset: options.onPickAsset,
+		seedAssets: options.seedAssets,
 		onIRChange(designId, pages) {
 			designCatalog.set(designId, pages);
 		},
