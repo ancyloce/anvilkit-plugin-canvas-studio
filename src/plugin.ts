@@ -4,7 +4,11 @@ import type {
 	StudioPluginRegistration,
 	StudioSidebarUnregister,
 } from "@anvilkit/core";
-import { setArtboardCatalog } from "@anvilkit/design-block";
+import {
+	CANVAS_OPEN_EVENT,
+	type OpenCanvasDetail,
+	setArtboardCatalog,
+} from "@anvilkit/design-block";
 import { createModeSwitchAction } from "./actions/mode-switch-action.js";
 import { inMemoryCanvasSnapshotAdapter } from "./adapters/in-memory-snapshot.js";
 import { exportAllArtboards } from "./export/CanvasExportBridge.js";
@@ -143,6 +147,7 @@ export function createCanvasStudioPlugin(
 		meta: CANVAS_STUDIO_PLUGIN_META,
 		register() {
 			let quickAddUnregister: StudioSidebarUnregister | null = null;
+			let detachOpenCanvas: (() => void) | null = null;
 			const registration: StudioPluginRegistration = {
 				meta: CANVAS_STUDIO_PLUGIN_META,
 				headerActions: [modeSwitchAction],
@@ -165,10 +170,41 @@ export function createCanvasStudioPlugin(
 						// `designCatalog` via `onIRChange`; this lookup is the
 						// sync read path consulted by Puck's `resolveFields`.
 						setArtboardCatalog((designId) => designCatalog.get(designId) ?? []);
+						// Click-to-open bridge: a DesignBlock dispatches
+						// CANVAS_OPEN_EVENT from inside a Puck overlay portal
+						// (see @anvilkit/design-block). Handling it here opens the
+						// editor through the same `modeStore.openEditor` path the
+						// header action uses. Guarded for SSR — the event only
+						// fires from a client click.
+						if (typeof window !== "undefined") {
+							const onOpenCanvas = (event: Event) => {
+								const detail = (event as CustomEvent<OpenCanvasDetail>).detail;
+								if (!detail) return;
+								// Empty designId = freshly inserted block; allocate one
+								// (mirrors the header action's defaultResolveTarget).
+								const designId =
+									typeof detail.designId === "string" &&
+									detail.designId.length > 0
+										? detail.designId
+										: typeof crypto !== "undefined" && "randomUUID" in crypto
+											? crypto.randomUUID()
+											: `design-${Date.now().toString(36)}`;
+								modeStore.openEditor({
+									designId,
+									puckNodeId: detail.puckNodeId ?? null,
+									artboardId: detail.artboardId ?? null,
+								});
+							};
+							window.addEventListener(CANVAS_OPEN_EVENT, onOpenCanvas);
+							detachOpenCanvas = () =>
+								window.removeEventListener(CANVAS_OPEN_EVENT, onOpenCanvas);
+						}
 					},
 					onDestroy() {
 						quickAddUnregister?.();
 						quickAddUnregister = null;
+						detachOpenCanvas?.();
+						detachOpenCanvas = null;
 						previewCache.clear();
 						designCatalog.clear();
 						setArtboardCatalog(null);
