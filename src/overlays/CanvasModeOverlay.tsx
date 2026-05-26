@@ -6,7 +6,7 @@ import {
 	createCanvasIR,
 	createPage,
 } from "@anvilkit/canvas-core";
-import { CanvasStudio } from "@anvilkit/canvas-editor";
+import { CanvasWorkspace } from "@anvilkit/canvas-editor";
 // Import from the `/config` subpath (not the main barrel) so the plugin
 // doesn't pull in core's dnd-kit-laden sidebar graph — keeps the bundle lean
 // and the jsdom test env free of ResizeObserver requirements.
@@ -127,49 +127,27 @@ export function createCanvasModeOverlay({
 			};
 		}, [state.open, state.designId]);
 
+		// Full-viewport host for the editor shell. `<CanvasWorkspace>`'s root is
+		// `h-full` and brings its own themed `bg-background`, so the overlay only
+		// owns the fixed positioning + stacking context.
 		const overlayStyle = useMemo(
-			() =>
-				({
-					position: "fixed",
-					inset: 0,
-					zIndex: 100,
-					background: "#0f172a",
-					color: "#e2e8f0",
-					display: "flex",
-					flexDirection: "column",
-				}) as const,
-			[],
-		);
-		const headerStyle = useMemo(
-			() =>
-				({
-					display: "flex",
-					alignItems: "center",
-					gap: 12,
-					padding: "10px 16px",
-					borderBottom: "1px solid #1f2937",
-					background: "#020617",
-				}) as const,
-			[],
-		);
-		const buttonStyle = useMemo(
-			() =>
-				({
-					padding: "6px 14px",
-					background: "#1d4ed8",
-					color: "#ffffff",
-					border: "none",
-					borderRadius: 4,
-					cursor: "pointer",
-					font: "inherit",
-				}) as const,
+			() => ({ position: "fixed", inset: 0, zIndex: 100 }) as const,
 			[],
 		);
 
 		if (!state.open) return null;
 		if (!initialIR) {
 			return (
-				<div style={overlayStyle} data-testid="canvas-mode-overlay-loading">
+				<div
+					style={{
+						...overlayStyle,
+						display: "grid",
+						placeItems: "center",
+						background: "var(--background, #ffffff)",
+						color: "var(--foreground, #0f172a)",
+					}}
+					data-testid="canvas-mode-overlay-loading"
+				>
 					Loading design…
 				</div>
 			);
@@ -201,43 +179,33 @@ export function createCanvasModeOverlay({
 				data-testid="canvas-mode-overlay"
 				data-design-id={state.designId}
 			>
-				<header style={headerStyle}>
-					<strong>Canvas Studio</strong>
-					<span style={{ opacity: 0.7, fontSize: 12 }}>
-						design <code>{state.designId}</code>
-					</span>
-					<div style={{ marginLeft: "auto" }}>
-						<button
-							type="button"
-							style={buttonStyle}
-							data-testid="canvas-mode-overlay-back"
-							disabled={busy}
-							onClick={handleBack}
-						>
-							{busy ? "Saving…" : "Back to Page"}
-						</button>
-					</div>
-				</header>
-				<div style={{ flex: 1, overflow: "auto", background: "#ffffff" }}>
-					<CanvasStudio
-						initialIR={initialIR}
-						brandKit={brandKit}
-						{...(state.artboardId &&
-						initialIR.pages.some((p) => p.id === state.artboardId)
-							? { initialActivePageId: state.artboardId }
-							: {})}
-						onChange={(ir) => {
-							setCurrentIR(ir);
-							onIRChange?.(state.designId, pagesToCatalogEntries(ir.pages));
-						}}
-						onActivePageChange={(pageId) => {
-							activePageIdRef.current = pageId;
-						}}
-						onStageReady={(stage) => {
-							stageRef.current = stage;
-						}}
-					/>
-				</div>
+				<CanvasWorkspace
+					initialIR={initialIR}
+					brandKit={brandKit}
+					// Stable per-design id so the workspace UI store (active panel
+					// tab, inspector collapse) is isolated per design and survives
+					// re-renders rather than resetting on every overlay re-render.
+					storeId={state.designId}
+					// "Back" lives in the workspace header now. It still runs the
+					// full commit-and-close bridge (save IR, export preview, patch
+					// the Puck DesignBlock) via `handleBack`. The `busy` guard keeps
+					// a double-click from committing twice.
+					onBack={handleBack}
+					{...(state.artboardId &&
+					initialIR.pages.some((p) => p.id === state.artboardId)
+						? { initialActivePageId: state.artboardId }
+						: {})}
+					onChange={(ir) => {
+						setCurrentIR(ir);
+						onIRChange?.(state.designId, pagesToCatalogEntries(ir.pages));
+					}}
+					onActivePageChange={(pageId) => {
+						activePageIdRef.current = pageId;
+					}}
+					onStageReady={(stage) => {
+						stageRef.current = stage;
+					}}
+				/>
 			</div>
 		);
 	}

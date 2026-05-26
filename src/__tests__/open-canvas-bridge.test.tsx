@@ -6,10 +6,10 @@ import { CANVAS_OPEN_EVENT } from "@anvilkit/design-block";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// The overlay renders <CanvasStudio> when open; stub it so this test stays
+// The overlay renders <CanvasWorkspace> when open; stub it so this test stays
 // off Konva. rasterizePage is pulled in by the plugin's export bridge.
 vi.mock("@anvilkit/canvas-editor", () => ({
-	CanvasStudio: () => <div data-testid="canvas-studio-mock" />,
+	CanvasWorkspace: () => <div data-testid="canvas-studio-mock" />,
 	rasterizePage: vi.fn(async (input: { page: { id: string } }) => ({
 		url: `data:image/png;base64,RASTER-${input.page.id}`,
 		mimeType: "image/png" as const,

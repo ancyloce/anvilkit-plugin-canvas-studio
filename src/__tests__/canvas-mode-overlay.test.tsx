@@ -4,23 +4,26 @@ import {
 	createPage,
 } from "@anvilkit/canvas-core";
 import {
-	StudioConfigProvider,
 	createStudioConfig,
+	StudioConfigProvider,
 } from "@anvilkit/core/config";
 import { act, render, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Capture the `<CanvasStudio>` props each time it's rendered so the test
-// can drive its `onChange` from outside.
+// The overlay mounts `<CanvasWorkspace>` (the full editor shell). Capture its
+// props each render so the test can drive `onChange` from outside and assert
+// the forwarded `brandKit`. `CanvasWorkspace` forwards these props straight to
+// the headless `<CanvasStudio>`, so the prop contract these tests check is
+// unchanged by the shell swap.
 let capturedStudioProps: ComponentProps<
-	typeof import("@anvilkit/canvas-editor").CanvasStudio
+	typeof import("@anvilkit/canvas-editor").CanvasWorkspace
 > | null = null;
 
 vi.mock("@anvilkit/canvas-editor", () => ({
-	CanvasStudio: (
+	CanvasWorkspace: (
 		props: ComponentProps<
-			typeof import("@anvilkit/canvas-editor").CanvasStudio
+			typeof import("@anvilkit/canvas-editor").CanvasWorkspace
 		>,
 	) => {
 		capturedStudioProps = props;
@@ -179,6 +182,40 @@ describe("CanvasModeOverlay onIRChange", () => {
 		});
 		// Default minted IR uses `${designId}-page` as the single page id.
 		expect(onIRChange).toHaveBeenCalledWith("fresh", [{ id: "fresh-page" }]);
+	});
+});
+
+describe("CanvasModeOverlay editor shell (regression)", () => {
+	beforeEach(() => {
+		capturedStudioProps = null;
+	});
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
+	// Regression: the overlay must mount the full `<CanvasWorkspace>` editor
+	// shell (toolbar, panel dock, inspector), NOT the bare headless
+	// `<CanvasStudio>` — which renders only a stage and ships no chrome, so the
+	// overlay opened to a blank white canvas with no way to edit. The vi.mock
+	// above only stubs `CanvasWorkspace`; if the overlay reverted to
+	// `CanvasStudio`, `capturedStudioProps` would stay null and this fails.
+	it("mounts the CanvasWorkspace shell with onBack + a stable per-design storeId", async () => {
+		const modeStore = createCanvasModeStore();
+		const adapter = makeAdapter(makeIR("d-shell", [["p1"]]));
+		const Overlay = createCanvasModeOverlay({ modeStore, adapter });
+
+		renderOverlay(Overlay);
+		act(() => {
+			modeStore.openEditor({ designId: "d-shell", puckNodeId: null });
+		});
+
+		await waitFor(() => {
+			expect(capturedStudioProps).not.toBeNull();
+		});
+		// "Back" is wired so the workspace header runs the commit-and-close bridge.
+		expect(typeof capturedStudioProps?.onBack).toBe("function");
+		// Per-design store id isolates the workspace UI slice (active tab, etc.).
+		expect(capturedStudioProps?.storeId).toBe("d-shell");
 	});
 });
 
