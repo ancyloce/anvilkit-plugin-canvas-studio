@@ -269,7 +269,12 @@ function patchDesignBlockPreview(input: {
 	dispatch?.({
 		type: "replace",
 		destinationIndex: index,
-		destinationZone: "default-zone",
+		// Puck keys root content under `rootDroppableId` = `${rootAreaId}:${rootZone}`
+		// = "root:default-zone" (not the bare "default-zone"). `replaceAction` reads
+		// `state.indexes.zones[destinationZone].contentIds` with no guard, so a bare
+		// zone id resolves to undefined → "Cannot read properties of undefined
+		// (reading 'contentIds')". The constant isn't exported from @puckeditor/core.
+		destinationZone: "root:default-zone",
 		data: {
 			...target,
 			props: nextProps,

@@ -177,6 +177,79 @@ describe("createCanvasStudioPlugin", () => {
 			}
 		});
 
+		it("patches the source DesignBlock via a Puck `replace` at the root zone (regression)", async () => {
+			// Regression: the commit-and-close bridge dispatches a Puck `replace`
+			// to write `previewUrl` back onto the DesignBlock. Puck keys root
+			// content under "root:default-zone"; a bare "default-zone" made
+			// `replaceAction` read `state.indexes.zones[undefined].contentIds` →
+			// "Cannot read properties of undefined (reading 'contentIds')" when the
+			// user clicked Back. This drives the full onCommitAndClose path with a
+			// real `puckNodeId` + a fake Puck API and asserts the action shape.
+			const overlayModule = await import("../overlays/CanvasModeOverlay.js");
+			let capturedOptions:
+				| Parameters<typeof overlayModule.createCanvasModeOverlay>[0]
+				| null = null;
+			const spy = vi
+				.spyOn(overlayModule, "createCanvasModeOverlay")
+				.mockImplementation((opts) => {
+					capturedOptions = opts;
+					return () => null;
+				});
+			try {
+				const dispatch = vi.fn();
+				const appState = {
+					data: {
+						content: [{ type: "DesignBlock", props: { id: "n1" } }],
+					},
+				};
+				const ctx = {
+					registerLayerQuickAdd: vi.fn(() => () => {
+						/* no-op cleanup */
+					}),
+					getPuckApi: () => ({ appState, dispatch }),
+					emit: vi.fn(),
+					log: vi.fn(),
+				} as unknown as Parameters<
+					ReturnType<typeof createCanvasStudioPlugin>["register"]
+				>[0];
+				const plugin = createCanvasStudioPlugin({
+					adapter: inMemoryCanvasAdapter(),
+				});
+				const registration = plugin.register(ctx);
+				registration.hooks?.onInit?.(ctx);
+
+				const stage = {
+					toDataURL: vi.fn(() => "data:image/png;base64,PREVIEW"),
+				} as unknown as Konva.Stage;
+				await capturedOptions?.onCommitAndClose?.({
+					designId: "d1",
+					puckNodeId: "n1",
+					artboardId: "p1",
+					ir: makeIR(["p1"]),
+					stage,
+				});
+
+				expect(dispatch).toHaveBeenCalledTimes(1);
+				const action = dispatch.mock.calls[0]?.[0] as {
+					type: string;
+					destinationIndex: number;
+					destinationZone: string;
+					data: { props: Record<string, unknown> };
+				};
+				expect(action.type).toBe("replace");
+				expect(action.destinationIndex).toBe(0);
+				// The fix: root content lives at "root:default-zone", not "default-zone".
+				expect(action.destinationZone).toBe("root:default-zone");
+				expect(action.data.props).toMatchObject({
+					id: "n1",
+					previewUrl: "data:image/png;base64,PREVIEW",
+					artboardId: "p1",
+				});
+			} finally {
+				spy.mockRestore();
+			}
+		});
+
 		it("end-to-end: overlay onIRChange → designCatalog → getArtboardCatalog round-trip", async () => {
 			// Spy on `createCanvasModeOverlay` to capture the options the
 			// plugin passes (including the `onIRChange` callback we wire to

@@ -27,7 +27,10 @@ export function createDesignBlockQuickAdd(
 				type: "insert",
 				componentType,
 				destinationIndex: puckApi.appState.data.content.length,
-				destinationZone: "default-zone",
+				// Puck keys root content under "root:default-zone" (rootAreaId:rootZone).
+				// `insertAction` matches the walked zoneCompound exactly, so a bare
+				// "default-zone" never matches the root and silently inserts nothing.
+				destinationZone: "root:default-zone",
 			});
 			// Stage the editor session to open against the new design id. The
 			// user can click the mode-switch action next to start designing.
