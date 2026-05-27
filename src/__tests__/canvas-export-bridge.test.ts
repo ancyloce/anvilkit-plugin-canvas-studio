@@ -13,6 +13,13 @@ const rasterizePageMock = vi.fn(async (input: { page: CanvasPage }) => ({
 
 vi.mock("@anvilkit/canvas-editor", () => ({
 	rasterizePage: (input: { page: CanvasPage }) => rasterizePageMock(input),
+	// Faithful fake: the real helper hides chrome layers then serializes, so a
+	// fake stage (no layers) just forwards to toDataURL — preserving the
+	// "toDataURL called with options" assertions below.
+	exportStageContentDataURL: (
+		stage: Konva.Stage,
+		options: Record<string, unknown>,
+	) => stage.toDataURL(options),
 }));
 
 import {

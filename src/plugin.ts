@@ -106,6 +106,8 @@ export function createCanvasStudioPlugin(
 			designCatalog.set(designId, pages);
 		},
 		async onCommitAndClose({ designId, puckNodeId, artboardId, ir, stage }) {
+			let previewUrl: string | undefined;
+			let exportedArtboardId: string | undefined;
 			if (stage) {
 				const activePageId =
 					artboardId && artboardId.length > 0
@@ -133,15 +135,26 @@ export function createCanvasStudioPlugin(
 						},
 					);
 				}
-				if (puckNodeId) {
-					patchDesignBlockPreview({
-						ctx: ctxRef.current,
-						puckNodeId,
-						previewUrl: exported.activePreview.previewUrl,
-						artboardId: exported.activePreview.artboardId,
-						componentType: designBlockComponentType,
-					});
-				}
+				previewUrl = exported.activePreview.previewUrl;
+				exportedArtboardId = exported.activePreview.artboardId;
+			}
+			// Persist the canonical designId back onto the Puck node (with the
+			// preview, when we have one). A DesignBlock inserted with an empty
+			// designId gets a fresh random id minted on open; without writing it
+			// back, every reopen mints a *different* id and `adapter.load` misses
+			// → the editor opens blank and the previous edit is lost. Patching
+			// designId here makes the block remember which design it owns, so
+			// reopening reloads the saved IR. Runs even when no stage was ready,
+			// so the id link survives a commit that produced no export.
+			if (puckNodeId) {
+				patchDesignBlockPreview({
+					ctx: ctxRef.current,
+					puckNodeId,
+					designId,
+					previewUrl,
+					artboardId: exportedArtboardId,
+					componentType: designBlockComponentType,
+				});
 			}
 			// Persist a version-history snapshot under the `canvas:`
 			// keyspace and emit the bus event (inert today; forward-
@@ -237,7 +250,10 @@ export function createCanvasStudioPlugin(
 function patchDesignBlockPreview(input: {
 	ctx: StudioPluginContext | null;
 	puckNodeId: string;
-	previewUrl: string;
+	/** Canonical design id, always written so the block reloads its design. */
+	designId: string;
+	/** Omitted when no stage was available to export a fresh preview. */
+	previewUrl: string | undefined;
 	artboardId: string | undefined;
 	componentType: string;
 }): void {
@@ -262,7 +278,9 @@ function patchDesignBlockPreview(input: {
 	if (!target) return;
 	const nextProps = {
 		...(target.props ?? {}),
-		previewUrl: input.previewUrl,
+		// designId is the link the next open uses to reload the saved IR — always write it.
+		designId: input.designId,
+		...(input.previewUrl !== undefined ? { previewUrl: input.previewUrl } : {}),
 		...(input.artboardId !== undefined ? { artboardId: input.artboardId } : {}),
 	};
 	const dispatch = (api as { dispatch?: (action: unknown) => void }).dispatch;

@@ -17,6 +17,10 @@ vi.mock("@anvilkit/canvas-editor", () => ({
 		url: `data:image/png;base64,RASTER-${input.page.id}`,
 		mimeType: "image/png" as const,
 	})),
+	exportStageContentDataURL: (
+		stage: Konva.Stage,
+		options: Record<string, unknown>,
+	) => stage.toDataURL(options),
 }));
 
 describe("createCanvasStudioPlugin", () => {
@@ -242,9 +246,71 @@ describe("createCanvasStudioPlugin", () => {
 				expect(action.destinationZone).toBe("root:default-zone");
 				expect(action.data.props).toMatchObject({
 					id: "n1",
+					// Regression (content loss): the canonical designId must be
+					// written back onto the node so reopening the same block
+					// reloads its saved IR instead of minting a fresh blank design.
+					designId: "d1",
 					previewUrl: "data:image/png;base64,PREVIEW",
 					artboardId: "p1",
 				});
+			} finally {
+				spy.mockRestore();
+			}
+		});
+
+		it("writes designId back even when no stage is available to export (regression)", async () => {
+			// Content-loss regression: if the overlay commits without a ready
+			// stage (no preview to export), the designId link must still be
+			// persisted onto the Puck node — otherwise the next open mints a
+			// fresh random id and `adapter.load` misses, losing the edit.
+			const overlayModule = await import("../overlays/CanvasModeOverlay.js");
+			let capturedOptions:
+				| Parameters<typeof overlayModule.createCanvasModeOverlay>[0]
+				| null = null;
+			const spy = vi
+				.spyOn(overlayModule, "createCanvasModeOverlay")
+				.mockImplementation((opts) => {
+					capturedOptions = opts;
+					return () => null;
+				});
+			try {
+				const dispatch = vi.fn();
+				const appState = {
+					data: {
+						content: [{ type: "DesignBlock", props: { id: "n1" } }],
+					},
+				};
+				const ctx = {
+					registerLayerQuickAdd: vi.fn(() => () => {
+						/* no-op cleanup */
+					}),
+					getPuckApi: () => ({ appState, dispatch }),
+					emit: vi.fn(),
+					log: vi.fn(),
+				} as unknown as Parameters<
+					ReturnType<typeof createCanvasStudioPlugin>["register"]
+				>[0];
+				const plugin = createCanvasStudioPlugin({
+					adapter: inMemoryCanvasAdapter(),
+				});
+				const registration = plugin.register(ctx);
+				registration.hooks?.onInit?.(ctx);
+
+				await capturedOptions?.onCommitAndClose?.({
+					designId: "d1",
+					puckNodeId: "n1",
+					artboardId: null,
+					ir: makeIR(["p1"]),
+					stage: null,
+				});
+
+				expect(dispatch).toHaveBeenCalledTimes(1);
+				const action = dispatch.mock.calls[0]?.[0] as {
+					data: { props: Record<string, unknown> };
+				};
+				expect(action.data.props).toMatchObject({ id: "n1", designId: "d1" });
+				// No stage → no preview was exported, so previewUrl is left untouched.
+				expect(action.data.props).not.toHaveProperty("previewUrl");
 			} finally {
 				spy.mockRestore();
 			}

@@ -1,5 +1,8 @@
 import type { CanvasIR } from "@anvilkit/canvas-core";
-import { rasterizePage } from "@anvilkit/canvas-editor";
+import {
+	exportStageContentDataURL,
+	rasterizePage,
+} from "@anvilkit/canvas-editor";
 import type Konva from "konva";
 import type { PreviewCache } from "../state/preview-cache.js";
 
@@ -54,7 +57,11 @@ export function exportCanvasToAsset(
 	const pixelRatio = input.pixelRatio ?? 2;
 	const mimeType = input.mimeType ?? "image/png";
 	const quality = input.quality ?? 0.92;
-	const previewUrl = input.stage.toDataURL({
+	// Hide the editor-only chrome layers (selection transformer, smart guides,
+	// remote presence) so the preview captures design content only — not the
+	// selection handles the user happened to have on screen when they clicked
+	// Back. Non-active artboards already render clean via `rasterizePage`.
+	const previewUrl = exportStageContentDataURL(input.stage, {
 		pixelRatio,
 		mimeType,
 		quality,
@@ -128,8 +135,10 @@ const NON_ACTIVE_CONCURRENCY = 4;
  * Export a preview for every artboard in `ir.pages` and seed the
  * `previewCache` per artboard.
  *
- * The active artboard reuses the live `stage.toDataURL` path
- * (synchronous, accurate, and pixel-identical to what the user sees).
+ * The active artboard reuses the live stage (synchronous and accurate),
+ * serialized through `exportStageContentDataURL` so the editor-only chrome
+ * layers (selection, presence) are hidden — the preview is content-only,
+ * matching the off-screen `rasterizePage` output for the other pages.
  * Non-active artboards are rendered through `rasterizePage` from
  * `@anvilkit/canvas-editor`, which mounts each page off-screen in a
  * detached `Konva.Stage` and serializes it. Non-active rasterizations

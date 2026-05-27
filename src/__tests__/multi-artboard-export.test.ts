@@ -13,6 +13,10 @@ vi.mock("@anvilkit/canvas-editor", () => ({
 		url: `data:image/png;base64,RASTER-${input.page.id}`,
 		mimeType: "image/png" as const,
 	})),
+	exportStageContentDataURL: (
+		stage: Konva.Stage,
+		options: Record<string, unknown>,
+	) => stage.toDataURL(options),
 }));
 
 import { inMemoryCanvasAdapter } from "../adapters/in-memory.js";
