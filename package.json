@@ -41,8 +41,8 @@
 		"@anvilkit/canvas-core": "workspace:*",
 		"@anvilkit/canvas-editor": "workspace:*",
 		"@puckeditor/core": "^0.21.2",
-		"react": "^18.2.0 || ^19.0.0",
-		"react-dom": "^18.2.0 || ^19.0.0"
+		"react": ">=19.0.0",
+		"react-dom": ">=19.0.0"
 	},
 	"dependencies": {
 		"@anvilkit/core": "workspace:*",
@@ -68,10 +68,10 @@
 		"@anvilkit/typescript-config": "workspace:*",
 		"@anvilkit/vitest-config": "workspace:*",
 		"@puckeditor/core": "^0.21.2",
-		"@rslib/core": "^0.21.5",
+		"@rslib/core": "^0.22.0",
 		"@testing-library/react": "^16.3.2",
 		"@types/node": "^25.9.1",
-		"@types/react": "19.2.14",
+		"@types/react": "^19.2.14",
 		"@types/react-dom": "19.2.3",
 		"konva": "^10.3.0",
 		"publint": "^0.3.21",
