@@ -81,13 +81,13 @@ function createCanvasStudioPlugin(
 ): StudioPlugin;
 ```
 
-| Field                      | Type                                          | Default                          | Purpose                                                                                          |
-| -------------------------- | --------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `adapter`                  | `CanvasPersistenceAdapter`                    | _required_                       | Host persistence for canvas designs (`save` / `load` / `list` / `delete?`).                      |
-| `designBlockComponentType` | `string`                                      | `"DesignBlock"`                  | Puck component type id treated as a design block.                                                |
-| `canvasSnapshotAdapter`    | `CanvasSnapshotAdapter`                       | `inMemoryCanvasSnapshotAdapter()`| Version-history snapshot store for canvas designs. Supply a durable one for persistent history.  |
-| `onPickAsset`              | `() => Promise<string>`                       | none                             | Host image picker for the editor's `image` tool. Resolve with a (seeded) asset id; reject or `""` cancels. Omit to leave the tool inert. |
-| `seedAssets`               | `Readonly<Record<string, CanvasAssetRef>>`    | none                             | Host asset-library entries merged into every opened design so `onPickAsset` ids resolve to bytes. The design's own assets win on id collision. |
+| Field                      | Type                                       | Default                           | Purpose                                                                                                                                        |
+| -------------------------- | ------------------------------------------ | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adapter`                  | `CanvasPersistenceAdapter`                 | _required_                        | Host persistence for canvas designs (`save` / `load` / `list` / `delete?`).                                                                    |
+| `designBlockComponentType` | `string`                                   | `"DesignBlock"`                   | Puck component type id treated as a design block.                                                                                              |
+| `canvasSnapshotAdapter`    | `CanvasSnapshotAdapter`                    | `inMemoryCanvasSnapshotAdapter()` | Version-history snapshot store for canvas designs. Supply a durable one for persistent history.                                                |
+| `onPickAsset`              | `() => Promise<string>`                    | none                              | Host image picker for the editor's `image` tool. Resolve with a (seeded) asset id; reject or `""` cancels. Omit to leave the tool inert.       |
+| `seedAssets`               | `Readonly<Record<string, CanvasAssetRef>>` | none                              | Host asset-library entries merged into every opened design so `onPickAsset` ids resolve to bytes. The design's own assets win on id collision. |
 
 ### Adapter contracts
 
@@ -100,7 +100,11 @@ interface CanvasPersistenceAdapter {
 }
 
 interface CanvasSnapshotAdapter {
-  save(designId: string, ir: CanvasIR, meta?: { label?: string }): MaybePromise<string>;
+  save(
+    designId: string,
+    ir: CanvasIR,
+    meta?: { label?: string },
+  ): MaybePromise<string>;
   list(designId: string): MaybePromise<readonly CanvasSnapshotMeta[]>;
   load(designId: string, snapshotId: string): MaybePromise<CanvasIR | null>;
   delete?(designId: string, snapshotId: string): MaybePromise<void>;
@@ -113,28 +117,75 @@ canvas design history into compatible stores.
 
 ### Reference adapters
 
-| Export                            | Returns                     | Notes                                                                 |
-| --------------------------------- | --------------------------- | --------------------------------------------------------------------- |
-| `inMemoryCanvasAdapter()`         | `CanvasPersistenceAdapter`  | Transient; loses data on reload.                                      |
+| Export                                     | Returns                    | Notes                                                                                                  |
+| ------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `inMemoryCanvasAdapter()`                  | `CanvasPersistenceAdapter` | Transient; loses data on reload.                                                                       |
 | `localStorageCanvasAdapter({ namespace })` | `CanvasPersistenceAdapter` | Per-save snapshots under `<namespace>:designs:<id>` + an index key. Throws on SSR (no `localStorage`). |
-| `inMemoryCanvasSnapshotAdapter()` | `CanvasSnapshotAdapter`     | Default in-process snapshot store used when `canvasSnapshotAdapter` is omitted. |
+| `inMemoryCanvasSnapshotAdapter()`          | `CanvasSnapshotAdapter`    | Default in-process snapshot store used when `canvasSnapshotAdapter` is omitted.                        |
 
 ### Composable building blocks
 
 The plugin wires these internally, but each is exported for hosts assembling a
 custom integration:
 
-| Export                       | Purpose                                                                                  |
-| ---------------------------- | ---------------------------------------------------------------------------------------- |
-| `createModeSwitchAction`     | Header action that toggles canvas mode. Id: `MODE_SWITCH_ACTION_ID` (`"canvas-studio:toggle"`). |
-| `createDesignBlockQuickAdd`  | Layer quick-add for `DesignBlock`. Id: `DESIGN_BLOCK_QUICK_ADD_ID` (`"canvas-studio:add-design-block"`). |
-| `createCanvasModeOverlay`    | Builds the overlay component (`<CanvasWorkspace>` host) mounted in canvas mode.           |
-| `createDesignAssetResolver`  | `design://` IR asset resolver. Prefix: `DESIGN_REFERENCE_PREFIX` (`"design://"`).         |
-| `createCanvasSnapshotBridge` | Bridges canvas snapshots into version-history events under `CANVAS_KEYSPACE` (`"canvas"`). Reuses `version-history:save-requested` / `version-history:open-requested` (`SAVE_REQUESTED_EVENT` / `OPEN_REQUESTED_EVENT`). |
-| `createCanvasModeStore`      | Standalone mode-state store (`CanvasModeState` / `CanvasModeStoreApi`).                   |
-| `createPreviewCache`         | Artboard-preview URL cache (`PreviewCache`).                                              |
-| `exportCanvasToAsset` / `exportAllArtboards` | Rasterize a single artboard / every artboard to preview data URLs (`CanvasExportInput`, `CanvasExportResult`, `ExportAllArtboardsInput`, `ExportAllArtboardsResult`). |
-| `CANVAS_STUDIO_PLUGIN_META`  | The plugin metadata constant.                                                            |
+| Export                                       | Purpose                                                                                                                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `createModeSwitchAction`                     | Header action that toggles canvas mode. Id: `MODE_SWITCH_ACTION_ID` (`"canvas-studio:toggle"`).                                                                                                                          |
+| `createDesignBlockQuickAdd`                  | Layer quick-add for `DesignBlock`. Id: `DESIGN_BLOCK_QUICK_ADD_ID` (`"canvas-studio:add-design-block"`).                                                                                                                 |
+| `createCanvasModeOverlay`                    | Builds the overlay component (`<CanvasWorkspace>` host) mounted in canvas mode.                                                                                                                                          |
+| `createDesignAssetResolver`                  | `design://` IR asset resolver. Prefix: `DESIGN_REFERENCE_PREFIX` (`"design://"`).                                                                                                                                        |
+| `createCanvasSnapshotBridge`                 | Bridges canvas snapshots into version-history events under `CANVAS_KEYSPACE` (`"canvas"`). Reuses `version-history:save-requested` / `version-history:open-requested` (`SAVE_REQUESTED_EVENT` / `OPEN_REQUESTED_EVENT`). |
+| `createCanvasModeStore`                      | Standalone mode-state store (`CanvasModeState` / `CanvasModeStoreApi`).                                                                                                                                                  |
+| `createPreviewCache`                         | Artboard-preview URL cache (`PreviewCache`).                                                                                                                                                                             |
+| `exportCanvasToAsset` / `exportAllArtboards` | Rasterize a single artboard / every artboard to preview data URLs (`CanvasExportInput`, `CanvasExportResult`, `ExportAllArtboardsInput`, `ExportAllArtboardsResult`).                                                    |
+| `CANVAS_STUDIO_PLUGIN_META`                  | The plugin metadata constant.                                                                                                                                                                                            |
+
+## Usage examples
+
+### Transient in-memory designs (tests / ephemeral demos)
+
+```ts
+import { Studio } from "@anvilkit/core";
+import {
+  createCanvasStudioPlugin,
+  inMemoryCanvasAdapter,
+} from "@anvilkit/plugin-canvas-studio";
+
+// Designs live only for the session — handy for tests and throwaway demos.
+const canvasStudio = createCanvasStudioPlugin({
+  adapter: inMemoryCanvasAdapter(),
+});
+
+<Studio puckConfig={puckConfig} plugins={[canvasStudio]} />;
+```
+
+### Custom host-backed persistence adapter
+
+Implement the `CanvasPersistenceAdapter` contract against your own backend
+(Postgres, S3, IndexedDB, an HTTP API). `save` / `load` / `list` may be sync or
+async.
+
+```ts
+import {
+  createCanvasStudioPlugin,
+  type CanvasPersistenceAdapter,
+} from "@anvilkit/plugin-canvas-studio";
+
+const httpAdapter: CanvasPersistenceAdapter = {
+  save: (designId, ir) =>
+    fetch(`/api/designs/${designId}`, {
+      method: "PUT",
+      body: JSON.stringify(ir),
+    }).then(() => undefined),
+  load: (designId) =>
+    fetch(`/api/designs/${designId}`).then((res) =>
+      res.ok ? res.json() : null,
+    ),
+  list: () => fetch("/api/designs").then((res) => res.json()),
+};
+
+const canvasStudio = createCanvasStudioPlugin({ adapter: httpAdapter });
+```
 
 ## Notes & FAQ
 
