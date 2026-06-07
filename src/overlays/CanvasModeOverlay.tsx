@@ -8,11 +8,18 @@ import {
 	createPage,
 } from "@anvilkit/canvas-core";
 import { CanvasWorkspace } from "@anvilkit/canvas-editor";
+// The canvas-editor is localized via a prop-injected `messages` catalog (it
+// can't depend on `@anvilkit/core`). We bridge core's active locale to the
+// matching bundled catalog so the overlay speaks the same language as the rest
+// of Studio — and tracks `setLocale` because `useOptionalLocale` reads the live
+// store, not the seed config value.
+import canvasMessagesEn from "@anvilkit/canvas-editor/i18n/en.json";
+import canvasMessagesZh from "@anvilkit/canvas-editor/i18n/zh.json";
 // Import from the `/config` subpath (not the main barrel) so the plugin
 // doesn't pull in core's dnd-kit-laden sidebar graph — keeps the bundle lean
 // and the jsdom test env free of ResizeObserver requirements.
 import { useStudioConfig } from "@anvilkit/core/config";
-import { useMsg } from "@anvilkit/core/i18n";
+import { useMsg, useOptionalLocale } from "@anvilkit/core/i18n";
 import type Konva from "konva";
 import React, {
 	useEffect,
@@ -106,6 +113,13 @@ export function createCanvasModeOverlay({
 		// derived kit is memoized by config identity and passed straight to
 		// the canvas editor's `brandKit` prop.
 		const brandKit = useStudioConfig(studioConfigToBrandKit);
+		// Pick the canvas-editor catalog for the active locale. `startsWith`
+		// tolerates region tags (`zh`, `zh-CN`, `zh-Hans`); anything else falls
+		// back to English (the editor's own inline fallbacks cover any gaps).
+		const locale = useOptionalLocale();
+		const canvasMessages = locale.startsWith("zh")
+			? canvasMessagesZh
+			: canvasMessagesEn;
 		const [initialIR, setInitialIR] = useState<CanvasIR | null>(null);
 		const [currentIR, setCurrentIR] = useState<CanvasIR | null>(null);
 		const [busy, setBusy] = useState(false);
@@ -207,6 +221,9 @@ export function createCanvasModeOverlay({
 				<CanvasWorkspace
 					initialIR={initialIR}
 					brandKit={brandKit}
+					// Locale-bridged i18n catalog (see the import-site note). The
+					// editor resolves `t(key, fallback)` against this map.
+					messages={canvasMessages}
 					// Stable per-design id so the workspace UI store (active panel
 					// tab, inspector collapse) is isolated per design and survives
 					// re-renders rather than resetting on every overlay re-render.
