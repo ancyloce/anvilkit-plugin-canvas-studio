@@ -12,6 +12,7 @@ import { CanvasWorkspace } from "@anvilkit/canvas-editor";
 // doesn't pull in core's dnd-kit-laden sidebar graph — keeps the bundle lean
 // and the jsdom test env free of ResizeObserver requirements.
 import { useStudioConfig } from "@anvilkit/core/config";
+import { useMsg } from "@anvilkit/core/i18n";
 import type Konva from "konva";
 import React, {
 	useEffect,
@@ -157,6 +158,7 @@ export function createCanvasModeOverlay({
 			() => ({ position: "fixed", inset: 0, zIndex: 100 }) as const,
 			[],
 		);
+		const msg = useMsg();
 
 		if (!state.open) return null;
 		if (!initialIR) {
@@ -171,7 +173,7 @@ export function createCanvasModeOverlay({
 					}}
 					data-testid="canvas-mode-overlay-loading"
 				>
-					Loading design…
+					{msg("canvas-studio.overlay.loadingDesign")}
 				</div>
 			);
 		}

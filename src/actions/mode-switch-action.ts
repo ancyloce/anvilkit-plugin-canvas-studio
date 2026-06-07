@@ -58,6 +58,7 @@ export function createModeSwitchAction(
 	const resolveTarget = options.resolveTarget ?? defaultResolveTarget;
 	return {
 		id: MODE_SWITCH_ACTION_ID,
+		labelKey: "canvas-studio.action.openCanvas",
 		label: "Open Canvas",
 		icon: "shapes",
 		group: "primary",

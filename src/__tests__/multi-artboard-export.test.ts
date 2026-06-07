@@ -54,6 +54,7 @@ async function bootPlugin(): Promise<PluginHandle> {
 		getPuckApi: () => null,
 		emit: vi.fn(),
 		log: vi.fn(),
+		registerMessages: vi.fn(),
 	};
 	const registration = plugin.register(
 		ctx as unknown as Parameters<typeof plugin.register>[0],

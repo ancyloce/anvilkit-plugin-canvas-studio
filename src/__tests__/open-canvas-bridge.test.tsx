@@ -27,6 +27,7 @@ function makeFakeCtx() {
 		getPuckApi: () => null,
 		emit: vi.fn(),
 		log: vi.fn(),
+		registerMessages: vi.fn(),
 	} as unknown as Parameters<
 		ReturnType<typeof createCanvasStudioPlugin>["register"]
 	>[0];

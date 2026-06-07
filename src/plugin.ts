@@ -13,6 +13,7 @@ import {
 import { createModeSwitchAction } from "./actions/mode-switch-action.js";
 import { inMemoryCanvasSnapshotAdapter } from "./adapters/in-memory-snapshot.js";
 import { exportAllArtboards } from "./export/CanvasExportBridge.js";
+import { CANVAS_STUDIO_ENTRY } from "./i18n/entry.js";
 import { CANVAS_STUDIO_PLUGIN_META } from "./meta.js";
 import { createCanvasModeOverlay } from "./overlays/CanvasModeOverlay.js";
 import { createDesignBlockQuickAdd } from "./quick-add/design-block-quick-add.js";
@@ -175,7 +176,13 @@ export function createCanvasStudioPlugin(
 
 	return {
 		meta: CANVAS_STUDIO_PLUGIN_META,
-		register() {
+		register(ctx) {
+			// Contribute the `canvas-studio` catalog at compile time so the
+			// mode-switch `labelKey`, the layer quick-add `labelKey`, and the
+			// overlay's `useMsg` all resolve in-chrome. (register() runs during
+			// compilePlugins; onInit is too late for the initial catalog merge.)
+			ctx.registerMessages(CANVAS_STUDIO_ENTRY);
+
 			let quickAddUnregister: StudioSidebarUnregister | null = null;
 			let detachOpenCanvas: (() => void) | null = null;
 			const registration: StudioPluginRegistration = {
