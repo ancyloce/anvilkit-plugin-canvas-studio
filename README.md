@@ -17,7 +17,7 @@ pnpm add @anvilkit/plugin-canvas-studio @anvilkit/canvas-core @anvilkit/canvas-e
 ```
 
 Peer dependencies: `@anvilkit/canvas-core`, `@anvilkit/canvas-editor`,
-`@puckeditor/core ^0.21.2`, `react >=19.0.0`,
+`@puckeditor/core ^0.21.3`, `react >=19.0.0`,
 `react-dom >=19.0.0`. (`@anvilkit/core`, `@anvilkit/design-block`, and
 `@anvilkit/plugin-asset-manager` ship as direct dependencies.)
 
