@@ -251,7 +251,9 @@ describe("createCanvasStudioPlugin", () => {
 					// written back onto the node so reopening the same block
 					// reloads its saved IR instead of minting a fresh blank design.
 					designId: "d1",
-					previewUrl: "data:image/png;base64,PREVIEW",
+					// Props now carry a tiny `design://` reference, not the data URL —
+					// the bytes live in the plugin preview store (off Puck undo history).
+					previewUrl: "design://d1/p1",
 					artboardId: "p1",
 				});
 			} finally {

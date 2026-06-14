@@ -9,6 +9,7 @@ import {
 	CANVAS_OPEN_EVENT,
 	type OpenCanvasDetail,
 	setArtboardCatalog,
+	setDesignPreviewSource,
 } from "@anvilkit/design-block";
 import { createModeSwitchAction } from "./actions/mode-switch-action.js";
 import { inMemoryCanvasSnapshotAdapter } from "./adapters/in-memory-snapshot.js";
@@ -62,9 +63,11 @@ export interface CreateCanvasStudioPluginOptions {
  *   overlay.
  * - Overlay: mounts `<CanvasStudio>` when the toggle is on, persists the
  *   IR through the host-provided `CanvasPersistenceAdapter` on close,
- *   exports the stage to a preview URL, and patches the Puck DesignBlock
- *   it came from with `previewUrl` so the page renders the thumbnail
- *   when the user returns to Puck mode.
+ *   exports the stage into the preview store (object URL for display, data
+ *   URL for export), and patches the Puck DesignBlock it came from with a
+ *   tiny `design://` reference — never the image bytes, so Puck's undo
+ *   history does not retain a full preview per edit. The DesignBlock reads
+ *   the object URL back from the store via `setDesignPreviewSource`.
  * - Layer quick-add: inserts a `DesignBlock` placeholder into the Puck
  *   page and stages a fresh design id in the overlay store.
  * - `design://` asset resolver: hands back cached preview URLs for any
@@ -107,7 +110,10 @@ export function createCanvasStudioPlugin(
 			designCatalog.set(designId, pages);
 		},
 		async onCommitAndClose({ designId, puckNodeId, artboardId, ir, stage }) {
-			let previewUrl: string | undefined;
+			// A tiny `design://` reference written back into the Puck node — the exported
+			// image bytes stay in `previewCache` (object URL for display, data URL for
+			// export), so the undo-history snapshot carries ~40 chars, not a data URL.
+			let previewRef: string | undefined;
 			let exportedArtboardId: string | undefined;
 			if (stage) {
 				const activePageId =
@@ -136,8 +142,8 @@ export function createCanvasStudioPlugin(
 						},
 					);
 				}
-				previewUrl = exported.activePreview.previewUrl;
 				exportedArtboardId = exported.activePreview.artboardId;
+				previewRef = designPreviewReference(designId, exportedArtboardId);
 			}
 			// Persist the canonical designId back onto the Puck node (with the
 			// preview, when we have one). A DesignBlock inserted with an empty
@@ -152,7 +158,7 @@ export function createCanvasStudioPlugin(
 					ctx: ctxRef.current,
 					puckNodeId,
 					designId,
-					previewUrl,
+					previewRef,
 					artboardId: exportedArtboardId,
 					componentType: designBlockComponentType,
 				});
@@ -207,6 +213,12 @@ export function createCanvasStudioPlugin(
 						// `designCatalog` via `onIRChange`; this lookup is the
 						// sync read path consulted by Puck's `resolveFields`.
 						setArtboardCatalog((designId) => designCatalog.get(designId) ?? []);
+						// Hand DesignBlock the object URL for its design so it renders the
+						// thumbnail from the store instead of an inlined data URL prop.
+						setDesignPreviewSource({
+							get: (designId, artboardId) =>
+								previewCache.getObjectUrl(designId, artboardId) ?? null,
+						});
 						// Click-to-open bridge: a DesignBlock dispatches
 						// CANVAS_OPEN_EVENT from inside a Puck overlay portal
 						// (see @anvilkit/design-block). Handling it here opens the
@@ -242,6 +254,7 @@ export function createCanvasStudioPlugin(
 						quickAddUnregister = null;
 						detachOpenCanvas?.();
 						detachOpenCanvas = null;
+						setDesignPreviewSource(null);
 						previewCache.clear();
 						designCatalog.clear();
 						setArtboardCatalog(null);
@@ -254,13 +267,32 @@ export function createCanvasStudioPlugin(
 	};
 }
 
+/**
+ * Build the tiny `design://<designId>[/<artboardId>]` reference stored in a
+ * DesignBlock node's `previewUrl` prop. The image bytes live in the preview
+ * store keyed by the same `(designId, artboardId)`; the `design://` resolver
+ * (export) and the DesignBlock display seam (editor) both resolve it back.
+ */
+function designPreviewReference(
+	designId: string,
+	artboardId: string | undefined,
+): string {
+	return artboardId && artboardId.length > 0
+		? `design://${designId}/${artboardId}`
+		: `design://${designId}`;
+}
+
 function patchDesignBlockPreview(input: {
 	ctx: StudioPluginContext | null;
 	puckNodeId: string;
 	/** Canonical design id, always written so the block reloads its design. */
 	designId: string;
-	/** Omitted when no stage was available to export a fresh preview. */
-	previewUrl: string | undefined;
+	/**
+	 * Tiny `design://` store reference written into the node's `previewUrl`
+	 * prop (never the image bytes). Omitted when no stage was available to
+	 * export a fresh preview, leaving any prior value untouched.
+	 */
+	previewRef: string | undefined;
 	artboardId: string | undefined;
 	componentType: string;
 }): void {
@@ -287,7 +319,7 @@ function patchDesignBlockPreview(input: {
 		...(target.props ?? {}),
 		// designId is the link the next open uses to reload the saved IR — always write it.
 		designId: input.designId,
-		...(input.previewUrl !== undefined ? { previewUrl: input.previewUrl } : {}),
+		...(input.previewRef !== undefined ? { previewUrl: input.previewRef } : {}),
 		...(input.artboardId !== undefined ? { artboardId: input.artboardId } : {}),
 	};
 	const dispatch = (api as { dispatch?: (action: unknown) => void }).dispatch;
