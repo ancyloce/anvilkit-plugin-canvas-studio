@@ -121,8 +121,15 @@ export function createCanvasModeOverlay({
 			? canvasMessagesZh
 			: canvasMessagesEn;
 		const [initialIR, setInitialIR] = useState<CanvasIR | null>(null);
-		const [currentIR, setCurrentIR] = useState<CanvasIR | null>(null);
-		const [busy, setBusy] = useState(false);
+		// `currentIR` and `busy` are read only inside `handleBack` (the
+		// commit-and-close handler), never in render, so they live in refs.
+		// `currentIR` updates on every editor `onChange` — drag gestures fire
+		// many — so keeping it out of state avoids a wasted overlay re-render
+		// per edit. The `busy` ref also makes the double-commit guard
+		// synchronous (a state guard can miss a fast second click before the
+		// re-render propagates the updated closure to the Back button).
+		const currentIRRef = useRef<CanvasIR | null>(null);
+		const busyRef = useRef(false);
 		const stageRef = useRef<Konva.Stage | null>(null);
 		// CanvasStudio's first `onActivePageChange` fires synchronously
 		// after mount with the resolved active page id (validated initial,
@@ -137,7 +144,7 @@ export function createCanvasModeOverlay({
 		useEffect(() => {
 			if (!state.open) {
 				setInitialIR(null);
-				setCurrentIR(null);
+				currentIRRef.current = null;
 				return;
 			}
 			let cancelled = false;
@@ -157,7 +164,7 @@ export function createCanvasModeOverlay({
 					? { ...loaded, assets: { ...seedAssets, ...loaded.assets } }
 					: loaded;
 				setInitialIR(ir);
-				setCurrentIR(ir);
+				currentIRRef.current = ir;
 				onIRChange?.(state.designId, pagesToCatalogEntries(ir.pages));
 			})();
 			return () => {
@@ -193,22 +200,23 @@ export function createCanvasModeOverlay({
 		}
 
 		const handleBack = async () => {
-			if (busy) return;
-			setBusy(true);
+			if (busyRef.current) return;
+			busyRef.current = true;
 			try {
-				if (currentIR) {
-					await Promise.resolve(adapter.save(state.designId, currentIR));
+				const ir = currentIRRef.current;
+				if (ir) {
+					await Promise.resolve(adapter.save(state.designId, ir));
 					await onCommitAndClose?.({
 						designId: state.designId,
 						puckNodeId: state.puckNodeId,
 						artboardId: activePageIdRef.current,
-						ir: currentIR,
+						ir,
 						stage: stageRef.current,
 					});
 				}
 				modeStore.closeEditor();
 			} finally {
-				setBusy(false);
+				busyRef.current = false;
 			}
 		};
 
@@ -240,7 +248,7 @@ export function createCanvasModeOverlay({
 						? { initialActivePageId: state.artboardId }
 						: {})}
 					onChange={(ir) => {
-						setCurrentIR(ir);
+						currentIRRef.current = ir;
 						onIRChange?.(state.designId, pagesToCatalogEntries(ir.pages));
 					}}
 					onActivePageChange={(pageId) => {
