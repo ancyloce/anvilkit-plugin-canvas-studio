@@ -1,6 +1,6 @@
 {
 	"name": "@anvilkit/plugin-canvas-studio",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"description": "Canvas Studio integration plugin for Anvilkit Studio — mode-switch, design-block bridge, design:// asset resolver.",
 	"type": "module",
 	"main": "./dist/index.cjs",

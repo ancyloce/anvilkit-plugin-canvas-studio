@@ -1,6 +1,6 @@
 # @anvilkit/plugin-canvas-studio
 
-> **Alpha (`0.1.6`).** API may change before `1.0`.
+> **Alpha (`0.1.7`).** API may change before `1.0`.
 
 Mounts a full-screen **Canvas Studio** editing surface inside the Puck-based
 `<Studio>` shell. A header action toggles between Puck page mode and a canvas
