@@ -1,4 +1,5 @@
 import type { CanvasAssetRef } from "@anvilkit/canvas-core";
+import type { CanvasTemplateEntry } from "@anvilkit/canvas-editor";
 import type {
 	StudioPlugin,
 	StudioPluginContext,
@@ -54,6 +55,12 @@ export interface CreateCanvasStudioPluginOptions {
 	 * on id collision.
 	 */
 	readonly seedAssets?: Readonly<Record<string, CanvasAssetRef>>;
+	/**
+	 * Template catalog surfaced in the editor's Templates dock panel
+	 * (canvas-m0-009). Plain data — pass e.g. `Object.values(canvasTemplates)`
+	 * from `@anvilkit/canvas-templates`. Omit to show the panel's empty state.
+	 */
+	readonly templates?: readonly CanvasTemplateEntry[];
 }
 
 /**
@@ -106,6 +113,7 @@ export function createCanvasStudioPlugin(
 		adapter: options.adapter,
 		onPickAsset: options.onPickAsset,
 		seedAssets: options.seedAssets,
+		templates: options.templates,
 		onIRChange(designId, pages) {
 			designCatalog.set(designId, pages);
 		},

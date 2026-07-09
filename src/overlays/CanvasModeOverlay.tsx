@@ -7,6 +7,7 @@ import {
 	createCanvasIR,
 	createPage,
 } from "@anvilkit/canvas-core";
+import type { CanvasTemplateEntry } from "@anvilkit/canvas-editor";
 import { CanvasWorkspace } from "@anvilkit/canvas-editor";
 // The canvas-editor is localized via a prop-injected `messages` catalog (it
 // can't depend on `@anvilkit/core`). We bridge core's active locale to the
@@ -92,6 +93,8 @@ export interface CreateCanvasModeOverlayOptions {
 	 * placeable through {@link onPickAsset} in the overlay.
 	 */
 	readonly seedAssets?: Readonly<Record<string, CanvasAssetRef>>;
+	/** Template catalog for the editor's Templates dock panel (canvas-m0-009). */
+	readonly templates?: readonly CanvasTemplateEntry[];
 }
 
 export function createCanvasModeOverlay({
@@ -101,6 +104,7 @@ export function createCanvasModeOverlay({
 	onIRChange,
 	onPickAsset,
 	seedAssets,
+	templates,
 }: CreateCanvasModeOverlayOptions): () => React.JSX.Element | null {
 	function CanvasModeOverlay() {
 		const state = useSyncExternalStore(
@@ -243,6 +247,8 @@ export function createCanvasModeOverlay({
 					onBack={handleBack}
 					// Host image picker for the `image` tool (undefined → tool inert).
 					onPickAsset={onPickAsset}
+					// Host template catalog for the Templates dock panel.
+					templates={templates}
 					{...(state.artboardId &&
 					initialIR.pages.some((p) => p.id === state.artboardId)
 						? { initialActivePageId: state.artboardId }
