@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	type BrandKitDefinition,
 	type CanvasAssetRef,
 	type CanvasIR,
 	type CanvasPage,
@@ -8,7 +9,10 @@ import {
 	createPage,
 } from "@anvilkit/canvas-core";
 import type { CanvasTemplateEntry } from "@anvilkit/canvas-editor";
-import { CanvasWorkspace } from "@anvilkit/canvas-editor";
+import {
+	brandKitDefinitionToBrandKit,
+	CanvasWorkspace,
+} from "@anvilkit/canvas-editor";
 // The canvas-editor is localized via a prop-injected `messages` catalog (it
 // can't depend on `@anvilkit/core`). We bridge core's active locale to the
 // matching bundled catalog so the overlay speaks the same language as the rest
@@ -95,6 +99,15 @@ export interface CreateCanvasModeOverlayOptions {
 	readonly seedAssets?: Readonly<Record<string, CanvasAssetRef>>;
 	/** Template catalog for the editor's Templates dock panel (canvas-m0-009). */
 	readonly templates?: readonly CanvasTemplateEntry[];
+	/**
+	 * The full canonical Brand Kit (FR-031, canvas-m2-005). Takes precedence
+	 * over `StudioConfig.brandKit`/`branding.primaryColor` (`studioConfigToBrandKit`)
+	 * when present — `StudioConfig`'s own brand-kit block stays colors/fonts-only
+	 * by design (`@anvilkit/core` must not depend on `@anvilkit/canvas-core`), so
+	 * a host that wants logos, typography, tone of voice, or brand rules surfaced
+	 * in the canvas editor passes a full `BrandKitDefinition` here instead.
+	 */
+	readonly brandKit?: BrandKitDefinition;
 }
 
 export function createCanvasModeOverlay({
@@ -104,6 +117,7 @@ export function createCanvasModeOverlay({
 	onIRChange,
 	onPickAsset,
 	seedAssets,
+	brandKit: brandKitDefinition,
 	templates,
 }: CreateCanvasModeOverlayOptions): () => React.JSX.Element | null {
 	function CanvasModeOverlay() {
@@ -112,11 +126,20 @@ export function createCanvasModeOverlay({
 			modeStore.getState,
 			modeStore.getState,
 		);
-		// Shared brand colors + fonts from the host's Studio config (I3-4).
-		// `studioConfigToBrandKit` is a stable module-level selector, so the
-		// derived kit is memoized by config identity and passed straight to
-		// the canvas editor's `brandKit` prop.
-		const brandKit = useStudioConfig(studioConfigToBrandKit);
+		// Shared brand data for the canvas editor (I3-4, upgraded to the full
+		// canonical contract in canvas-m2-005). `studioConfigToBrandKit` is a
+		// stable module-level selector, so the config-derived kit is memoized by
+		// config identity; the factory's `brandKit` option (a full
+		// `BrandKitDefinition`), when present, takes precedence and is memoized
+		// by its own reference instead.
+		const configBrandKit = useStudioConfig(studioConfigToBrandKit);
+		const brandKit = useMemo(
+			() =>
+				brandKitDefinition
+					? brandKitDefinitionToBrandKit(brandKitDefinition)
+					: configBrandKit,
+			[brandKitDefinition, configBrandKit],
+		);
 		// Pick the canvas-editor catalog for the active locale. `startsWith`
 		// tolerates region tags (`zh`, `zh-CN`, `zh-Hans`); anything else falls
 		// back to English (the editor's own inline fallbacks cover any gaps).
