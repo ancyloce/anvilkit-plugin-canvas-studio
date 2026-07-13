@@ -1,4 +1,4 @@
-import type { CanvasAssetRef } from "@anvilkit/canvas-core";
+import type { BrandKitDefinition, CanvasAssetRef } from "@anvilkit/canvas-core";
 import type { CanvasTemplateEntry } from "@anvilkit/canvas-editor";
 import type {
 	StudioPlugin,
@@ -61,6 +61,14 @@ export interface CreateCanvasStudioPluginOptions {
 	 * from `@anvilkit/canvas-templates`. Omit to show the panel's empty state.
 	 */
 	readonly templates?: readonly CanvasTemplateEntry[];
+	/**
+	 * The full canonical Brand Kit (FR-031, canvas-m2-005) — logos, typography,
+	 * tone of voice, and compliance rules, not just colors/fonts. Takes
+	 * precedence over `StudioConfig.brandKit`/`branding.primaryColor` when
+	 * present; see `CreateCanvasModeOverlayOptions.brandKit` for why
+	 * `StudioConfig` itself stays colors/fonts-only.
+	 */
+	readonly brandKit?: BrandKitDefinition;
 }
 
 /**
@@ -114,6 +122,7 @@ export function createCanvasStudioPlugin(
 		onPickAsset: options.onPickAsset,
 		seedAssets: options.seedAssets,
 		templates: options.templates,
+		brandKit: options.brandKit,
 		onIRChange(designId, pages) {
 			designCatalog.set(designId, pages);
 		},
