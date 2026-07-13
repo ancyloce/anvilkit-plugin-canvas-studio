@@ -1,4 +1,4 @@
-import type { CanvasIR } from "@anvilkit/canvas-core";
+import type { CanvasIR, CanvasIRVersion } from "@anvilkit/canvas-core";
 
 export type MaybePromise<T> = T | Promise<T>;
 
@@ -23,6 +23,22 @@ export interface CanvasPersistenceAdapter {
 }
 
 /**
+ * Export-relevant structural summary of a saved snapshot (FR-073): how many
+ * pages it has, and which of them are campaign-resize variants of another
+ * page (`CanvasPage.variantSource`, FR-061) — the metadata a version-history
+ * UI needs to show "this version targets Instagram Post + LinkedIn Banner"
+ * without materializing the full IR or running an actual export.
+ */
+export interface CanvasSnapshotExportMeta {
+	readonly pageCount: number;
+	readonly variants: ReadonlyArray<{
+		readonly pageId: string;
+		readonly presetId: string;
+		readonly presetVersion: string;
+	}>;
+}
+
+/**
  * One historical snapshot of a canvas design. Mirrors the shape that
  * `@anvilkit/plugin-version-history` uses for Puck PageIR snapshots so
  * the two histories can later share UI without reshaping data.
@@ -32,6 +48,18 @@ export interface CanvasSnapshotMeta {
 	readonly designId: string;
 	readonly savedAt: string;
 	readonly label?: string;
+	/** `CanvasIR.version` at save time (FR-073). */
+	readonly irVersion: CanvasIRVersion;
+	/** Asset ids referenced by the saved IR (FR-073) — ids only, never the full `CanvasAssetRef` records. */
+	readonly assetIds: readonly string[];
+	/**
+	 * `CanvasIR.metadata.brandId` at save time (FR-073), if the design used a
+	 * brand kit. A reference only — never the full `BrandKitDefinition`,
+	 * consistent with "IR references tokens, not brand kits" (canvas-m2-005).
+	 */
+	readonly brandKitId?: string;
+	/** Export-relevant structural summary (FR-073). See {@link CanvasSnapshotExportMeta}. */
+	readonly exportMeta: CanvasSnapshotExportMeta;
 }
 
 /**
