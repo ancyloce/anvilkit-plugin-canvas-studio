@@ -47,6 +47,10 @@ export {
 	SAVE_REQUESTED_EVENT,
 } from "./state/canvas-snapshot-bridge.js";
 export {
+	type CanvasSnapshotDiff,
+	diffCanvasSnapshots,
+} from "./state/canvas-snapshot-diff.js";
+export {
 	type CanvasModeState,
 	type CanvasModeStoreApi,
 	createCanvasModeStore,
@@ -55,10 +59,15 @@ export {
 	createPreviewCache,
 	type PreviewCache,
 } from "./state/preview-cache.js";
+export {
+	buildCanvasSnapshotExportMeta,
+	buildCanvasSnapshotMeta,
+} from "./state/snapshot-meta.js";
 export type {
 	CanvasDesignMeta,
 	CanvasPersistenceAdapter,
 	CanvasSnapshotAdapter,
+	CanvasSnapshotExportMeta,
 	CanvasSnapshotMeta,
 	MaybePromise,
 } from "./types/types.js";

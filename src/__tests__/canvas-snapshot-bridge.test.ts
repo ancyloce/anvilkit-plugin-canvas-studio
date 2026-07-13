@@ -150,4 +150,36 @@ describe("createCanvasSnapshotBridge", () => {
 		expect(l1[0]?.designId).toBe("d1");
 		expect(l2[0]?.designId).toBe("d2");
 	});
+
+	it("restoreSnapshot appends a new version rather than mutating history", async () => {
+		const adapter = inMemoryCanvasSnapshotAdapter();
+		const bridge = createCanvasSnapshotBridge({
+			adapter,
+			getCtx: () => fakeCtx(),
+		});
+		const originalId = await bridge.saveSnapshot("d1", blankIR("d1"), {
+			label: "v1",
+		});
+		const result = await bridge.restoreSnapshot("d1", originalId, {
+			label: "restored",
+		});
+		expect(result).not.toBeNull();
+		expect(result?.newSnapshotId).not.toBe(originalId);
+
+		const list = await bridge.listSnapshots("d1");
+		expect(list).toHaveLength(2);
+		expect(list.map((s) => s.id)).toEqual([originalId, result?.newSnapshotId]);
+		expect(list[0]?.label).toBe("v1");
+		expect(list[1]?.label).toBe("restored");
+	});
+
+	it("restoreSnapshot resolves null for an unknown snapshot id", async () => {
+		const adapter = inMemoryCanvasSnapshotAdapter();
+		const bridge = createCanvasSnapshotBridge({
+			adapter,
+			getCtx: () => fakeCtx(),
+		});
+		const result = await bridge.restoreSnapshot("d1", "missing");
+		expect(result).toBeNull();
+	});
 });
