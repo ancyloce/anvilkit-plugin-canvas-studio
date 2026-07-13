@@ -20,16 +20,21 @@ let capturedStudioProps: ComponentProps<
 	typeof import("@anvilkit/canvas-editor").CanvasWorkspace
 > | null = null;
 
-vi.mock("@anvilkit/canvas-editor", () => ({
-	CanvasWorkspace: (
-		props: ComponentProps<
-			typeof import("@anvilkit/canvas-editor").CanvasWorkspace
-		>,
-	) => {
-		capturedStudioProps = props;
-		return <div data-testid="canvas-studio-mock" />;
-	},
-}));
+vi.mock("@anvilkit/canvas-editor", async (importOriginal) => {
+	const actual =
+		await importOriginal<typeof import("@anvilkit/canvas-editor")>();
+	return {
+		...actual,
+		CanvasWorkspace: (
+			props: ComponentProps<
+				typeof import("@anvilkit/canvas-editor").CanvasWorkspace
+			>,
+		) => {
+			capturedStudioProps = props;
+			return <div data-testid="canvas-studio-mock" />;
+		},
+	};
+});
 
 import {
 	createCanvasModeOverlay,
@@ -303,5 +308,49 @@ describe("CanvasModeOverlay brandKit (I3-4)", () => {
 			expect(capturedStudioProps).not.toBeNull();
 		});
 		expect(capturedStudioProps?.brandKit).toEqual({ colors: [], fonts: [] });
+	});
+
+	it("prefers a factory-supplied BrandKitDefinition over StudioConfig.brandKit (canvas-m2-005, FR-031)", async () => {
+		const modeStore = createCanvasModeStore();
+		const adapter = makeAdapter(makeIR("d5", [["p1"]]));
+		const Overlay = createCanvasModeOverlay({
+			modeStore,
+			adapter,
+			brandKit: {
+				id: "kit1",
+				name: "Acme",
+				logos: [{ id: "logo1", name: "Wordmark", uri: "asset://logo1" }],
+				colors: [{ id: "c1", name: "Primary", value: "#111111" }],
+				fonts: [{ id: "f1", name: "Body", family: "Inter" }],
+				typography: [{ id: "heading", name: "Heading", fontSize: 32 }],
+				rules: [{ id: "r1", kind: "forbidden-color", value: "#ff0000" }],
+			},
+		});
+		// A StudioConfig brandKit is ALSO configured, to prove the factory
+		// option wins rather than merging or being overridden.
+		const config = createStudioConfig({
+			brandKit: { colors: [{ name: "Ignored", value: "#f59e0b" }], fonts: [] },
+		});
+
+		renderOverlay(Overlay, config);
+		act(() => {
+			modeStore.openEditor({ designId: "d5", puckNodeId: null });
+		});
+
+		await waitFor(() => {
+			expect(capturedStudioProps).not.toBeNull();
+		});
+		expect(capturedStudioProps?.brandKit).toEqual({
+			id: "kit1",
+			name: "Acme",
+			logos: [{ id: "logo1", name: "Wordmark", uri: "asset://logo1" }],
+			colors: [{ id: "c1", name: "Primary", value: "#111111" }],
+			fonts: ["Inter"],
+			typography: [{ id: "heading", name: "Heading", fontSize: 32 }],
+			imageStylePresets: undefined,
+			toneOfVoice: undefined,
+			rules: [{ id: "r1", kind: "forbidden-color", value: "#ff0000" }],
+			defaultExportPresets: undefined,
+		});
 	});
 });
