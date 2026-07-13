@@ -6,7 +6,13 @@ import type { StudioConfig } from "@anvilkit/core";
  * editor's {@link BrandKit} (I3-4). Uses `config.brandKit.colors`/`fonts`
  * verbatim and — when the chrome's `branding.primaryColor` is set and not
  * already among the swatches — prepends it as a "Primary" swatch so the
- * canvas surfaces the same accent the editor chrome uses.
+ * canvas surfaces the same accent the editor chrome uses. Lossless with
+ * respect to its source: `StudioConfig.brandKit` (canvas-m2-005, FR-031) is
+ * deliberately kept colors/fonts-only, since `@anvilkit/core` must not
+ * depend on `@anvilkit/canvas-core` for the richer logos/typography/tone/
+ * rules fields — a host that wants those surfaced passes a full
+ * `BrandKitDefinition` via `createCanvasStudioPlugin({ brandKit })` instead,
+ * which `CanvasModeOverlay` prefers over this projection when present.
  *
  * Declared as a stable module-level function so
  * `useStudioConfig(studioConfigToBrandKit)` memoizes the result by config
