@@ -13,12 +13,9 @@ export const OPEN_REQUESTED_EVENT = "version-history:open-requested";
 /**
  * Payload shape emitted on the Studio event bus when a canvas-mode
  * save or open is requested. The `keyspace` field is the canonical
- * namespace tag — `plugin-version-history` (or any future bridge UI)
- * can read it to distinguish canvas history from Puck PageIR history.
- *
- * The bus itself is currently inert in `@anvilkit/core` — see
- * `packages/core/src/types/plugin.ts:208-217`. The events are still
- * emitted so the contract is in place when delivery ships.
+ * namespace tag — `plugin-version-history` reads it (FR-073) to
+ * distinguish canvas history from Puck PageIR history and track a
+ * lightweight reference list alongside its own snapshots.
  */
 export interface CanvasVersionHistoryEventPayload {
 	readonly keyspace: typeof CANVAS_KEYSPACE;
@@ -59,6 +56,20 @@ export interface CanvasSnapshotBridge {
 		designId: string,
 		snapshotId: string,
 	) => Promise<void>;
+	/**
+	 * Restore an older snapshot by re-saving its IR as a **new** snapshot
+	 * (FR-073) — history is append-only; restoring never mutates or removes
+	 * the entry being restored from. Resolves `null` if `snapshotId` no
+	 * longer exists (e.g. deleted since the caller last listed).
+	 */
+	readonly restoreSnapshot: (
+		designId: string,
+		snapshotId: string,
+		options?: { readonly label?: string },
+	) => Promise<{
+		readonly ir: CanvasIR;
+		readonly newSnapshotId: string;
+	} | null>;
 }
 
 export interface CreateCanvasSnapshotBridgeOptions {
@@ -125,11 +136,23 @@ export function createCanvasSnapshotBridge(
 		await Promise.resolve(adapter.delete(designId, snapshotId));
 	}
 
+	async function restoreSnapshot(
+		designId: string,
+		snapshotId: string,
+		opts?: { readonly label?: string },
+	): Promise<{ readonly ir: CanvasIR; readonly newSnapshotId: string } | null> {
+		const ir = await loadSnapshot(designId, snapshotId);
+		if (ir === null) return null;
+		const newSnapshotId = await saveSnapshot(designId, ir, opts);
+		return { ir, newSnapshotId };
+	}
+
 	return {
 		saveSnapshot,
 		requestOpen,
 		listSnapshots,
 		loadSnapshot,
 		deleteSnapshot,
+		restoreSnapshot,
 	};
 }
