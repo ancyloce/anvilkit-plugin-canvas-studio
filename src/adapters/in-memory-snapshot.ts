@@ -1,4 +1,5 @@
 import type { CanvasIR } from "@anvilkit/canvas-core";
+import { buildCanvasSnapshotMeta } from "../state/snapshot-meta.js";
 import type {
 	CanvasSnapshotAdapter,
 	CanvasSnapshotMeta,
@@ -41,12 +42,13 @@ export function inMemoryCanvasSnapshotAdapter(): CanvasSnapshotAdapter {
 		save(designId, ir, meta) {
 			const id = freshSnapshotId();
 			const snapshot: StoredSnapshot = {
-				meta: {
+				meta: buildCanvasSnapshotMeta(
 					id,
 					designId,
-					savedAt: new Date().toISOString(),
-					...(meta?.label !== undefined ? { label: meta.label } : {}),
-				},
+					new Date().toISOString(),
+					ir,
+					meta?.label,
+				),
 				ir: JSON.parse(JSON.stringify(ir)) as CanvasIR,
 			};
 			listFor(designId).push(snapshot);
