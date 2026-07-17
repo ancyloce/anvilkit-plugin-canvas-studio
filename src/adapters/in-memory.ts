@@ -33,5 +33,5 @@ export function inMemoryCanvasAdapter(): CanvasPersistenceAdapter {
 }
 
 function cloneIR(ir: CanvasIR): CanvasIR {
-	return JSON.parse(JSON.stringify(ir)) as CanvasIR;
+	return structuredClone(ir);
 }

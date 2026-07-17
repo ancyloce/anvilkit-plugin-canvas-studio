@@ -49,7 +49,7 @@ export function inMemoryCanvasSnapshotAdapter(): CanvasSnapshotAdapter {
 					ir,
 					meta?.label,
 				),
-				ir: JSON.parse(JSON.stringify(ir)) as CanvasIR,
+				ir: structuredClone(ir),
 			};
 			listFor(designId).push(snapshot);
 			return id;
@@ -59,7 +59,7 @@ export function inMemoryCanvasSnapshotAdapter(): CanvasSnapshotAdapter {
 		},
 		load(designId, snapshotId) {
 			const hit = listFor(designId).find((s) => s.meta.id === snapshotId);
-			return hit ? (JSON.parse(JSON.stringify(hit.ir)) as CanvasIR) : null;
+			return hit ? structuredClone(hit.ir) : null;
 		},
 		delete(designId, snapshotId) {
 			const list = listFor(designId);
