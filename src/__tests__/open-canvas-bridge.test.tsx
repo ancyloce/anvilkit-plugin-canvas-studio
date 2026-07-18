@@ -14,6 +14,10 @@ vi.mock("@anvilkit/canvas-editor", () => ({
 		url: `data:image/png;base64,RASTER-${input.page.id}`,
 		mimeType: "image/png" as const,
 	})),
+	// The overlay builds its default header plugins lazily at first render
+	// (PRD 0012 §15.16); a minimal stub keeps this suite off the real export
+	// surface (and its Konva graph).
+	createCanvasExportPlugin: () => ({ id: "export-stub" }),
 }));
 
 import { inMemoryCanvasAdapter } from "../adapters/in-memory.js";

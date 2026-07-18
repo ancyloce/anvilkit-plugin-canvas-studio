@@ -1,5 +1,11 @@
 import type { BrandKitDefinition, CanvasAssetRef } from "@anvilkit/canvas-core";
-import type { CanvasTemplateEntry } from "@anvilkit/canvas-editor";
+import type {
+	CanvasAssetUploader,
+	CanvasAutoSaveOptions,
+	CanvasHeaderPlugin,
+	CanvasRecoveryAdapter,
+	CanvasTemplateEntry,
+} from "@anvilkit/canvas-editor";
 import type {
 	StudioPlugin,
 	StudioPluginContext,
@@ -69,6 +75,30 @@ export interface CreateCanvasStudioPluginOptions {
 	 * `StudioConfig` itself stays colors/fonts-only.
 	 */
 	readonly brandKit?: BrandKitDefinition;
+	/**
+	 * Host upload transport for the editor's drag-and-drop / Uploads panel
+	 * (PRD 0012 FR-091, §15.16). Passed straight through to
+	 * `<CanvasWorkspace assetUploader>`; omit to leave upload surfaces in
+	 * their empty state.
+	 */
+	readonly assetUploader?: CanvasAssetUploader;
+	/**
+	 * Local-recovery store for unsaved drafts (FR-164). Defaults to the
+	 * editor's IndexedDB adapter when IndexedDB is available; pass `false`
+	 * to disable recovery entirely.
+	 */
+	readonly recoveryAdapter?: CanvasRecoveryAdapter | false;
+	/**
+	 * Workspace header plugins (FR-150/§15.16). Defaults to the editor's
+	 * built-in export plugin so every overlay mount gets the export dialog;
+	 * pass `[]` to strip it or a custom list to replace it.
+	 */
+	readonly headerPlugins?: readonly CanvasHeaderPlugin[];
+	/**
+	 * Auto-save tuning forwarded to `<CanvasWorkspace autoSave>` (FR-162).
+	 * The editor's default (on, debounced) applies when omitted.
+	 */
+	readonly autoSave?: boolean | CanvasAutoSaveOptions;
 }
 
 /**
@@ -123,6 +153,10 @@ export function createCanvasStudioPlugin(
 		seedAssets: options.seedAssets,
 		templates: options.templates,
 		brandKit: options.brandKit,
+		assetUploader: options.assetUploader,
+		recoveryAdapter: options.recoveryAdapter,
+		headerPlugins: options.headerPlugins,
+		autoSave: options.autoSave,
 		onIRChange(designId, pages) {
 			designCatalog.set(designId, pages);
 		},

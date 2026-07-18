@@ -351,6 +351,85 @@ describe("CanvasModeOverlay brandKit (I3-4)", () => {
 			toneOfVoice: undefined,
 			rules: [{ id: "r1", kind: "forbidden-color", value: "#ff0000" }],
 			defaultExportPresets: undefined,
+			// `brandKitDefinitionToBrandKit` round-trips the full definition so
+			// `useBrandKitDefinition()` consumers (logos, rules) can read it back.
+			sourceDefinition: {
+				id: "kit1",
+				name: "Acme",
+				logos: [{ id: "logo1", name: "Wordmark", uri: "asset://logo1" }],
+				colors: [{ id: "c1", name: "Primary", value: "#111111" }],
+				fonts: [{ id: "f1", name: "Body", family: "Inter" }],
+				typography: [{ id: "heading", name: "Heading", fontSize: 32 }],
+				rules: [{ id: "r1", kind: "forbidden-color", value: "#ff0000" }],
+			},
 		});
+	});
+});
+
+describe("CanvasModeOverlay adapter wiring (PRD 0012 §15.16)", () => {
+	beforeEach(() => {
+		capturedStudioProps = null;
+	});
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
+	async function openOverlay(
+		designId: string,
+		options?: Partial<Parameters<typeof createCanvasModeOverlay>[0]>,
+	) {
+		const modeStore = createCanvasModeStore();
+		const adapter = makeAdapter(makeIR(designId, [["p1"]]));
+		const Overlay = createCanvasModeOverlay({ modeStore, adapter, ...options });
+		renderOverlay(Overlay);
+		act(() => {
+			modeStore.openEditor({ designId, puckNodeId: null });
+		});
+		await waitFor(() => {
+			expect(capturedStudioProps).not.toBeNull();
+		});
+		return { adapter };
+	}
+
+	it("bridges the editor persistenceAdapter to adapter.save keyed by designId (not ir.id)", async () => {
+		const { adapter } = await openOverlay("d-save");
+		const persistence = capturedStudioProps?.persistenceAdapter;
+		expect(persistence).toBeDefined();
+		// A legacy stored IR can carry an id that differs from the overlay's
+		// designId; saves must still land on the record `adapter.load` reads.
+		const divergentIR = makeIR("legacy-id", [["p1"]]);
+		await persistence?.save({
+			ir: divergentIR,
+			documentId: divergentIR.id,
+			revision: 1,
+			signal: new AbortController().signal,
+		});
+		expect(adapter.save).toHaveBeenCalledWith("d-save", divergentIR);
+	});
+
+	it("defaults headerPlugins to the built-in export plugin and honors an override", async () => {
+		await openOverlay("d-export");
+		expect(capturedStudioProps?.headerPlugins).toHaveLength(1);
+
+		capturedStudioProps = null;
+		await openOverlay("d-export-2", { headerPlugins: [] });
+		expect(capturedStudioProps?.headerPlugins).toEqual([]);
+	});
+
+	it("forwards assetUploader and an explicit recoveryAdapter by reference", async () => {
+		const assetUploader = { upload: vi.fn(async () => []) };
+		const recoveryAdapter = {
+			write: vi.fn(async () => undefined),
+			read: vi.fn(async () => null),
+			clear: vi.fn(async () => undefined),
+		};
+		await openOverlay("d-fwd", { assetUploader, recoveryAdapter });
+		expect(capturedStudioProps?.assetUploader).toBe(assetUploader);
+		expect(capturedStudioProps?.recoveryAdapter).toBe(recoveryAdapter);
+	});
+
+	it("omits recoveryAdapter when the host passes false", async () => {
+		await openOverlay("d-norec", { recoveryAdapter: false });
+		expect(capturedStudioProps?.recoveryAdapter).toBeUndefined();
 	});
 });

@@ -8,10 +8,19 @@ import {
 	createCanvasIR,
 	createPage,
 } from "@anvilkit/canvas-core";
-import type { CanvasTemplateEntry } from "@anvilkit/canvas-editor";
+import type {
+	CanvasAssetUploader,
+	CanvasAutoSaveOptions,
+	CanvasHeaderPlugin,
+	CanvasRecoveryAdapter,
+	CanvasTemplateEntry,
+	CanvasPersistenceAdapter as EditorPersistenceAdapter,
+} from "@anvilkit/canvas-editor";
 import {
 	brandKitDefinitionToBrandKit,
 	CanvasWorkspace,
+	createCanvasExportPlugin,
+	createIndexedDbRecoveryAdapter,
 } from "@anvilkit/canvas-editor";
 // The canvas-editor is localized via a prop-injected `messages` catalog (it
 // can't depend on `@anvilkit/core`). We bridge core's active locale to the
@@ -108,6 +117,20 @@ export interface CreateCanvasModeOverlayOptions {
 	 * in the canvas editor passes a full `BrandKitDefinition` here instead.
 	 */
 	readonly brandKit?: BrandKitDefinition;
+	/** FR-091: upload transport forwarded to `<CanvasWorkspace assetUploader>`. */
+	readonly assetUploader?: CanvasAssetUploader;
+	/**
+	 * FR-164: local-recovery store. Defaults to the editor's IndexedDB adapter
+	 * when IndexedDB is available; `false` disables recovery.
+	 */
+	readonly recoveryAdapter?: CanvasRecoveryAdapter | false;
+	/**
+	 * FR-150/§15.16: workspace header plugins. Defaults to the editor's
+	 * built-in export plugin so the overlay gets the export dialog.
+	 */
+	readonly headerPlugins?: readonly CanvasHeaderPlugin[];
+	/** FR-162: auto-save tuning forwarded to `<CanvasWorkspace autoSave>`. */
+	readonly autoSave?: boolean | CanvasAutoSaveOptions;
 }
 
 export function createCanvasModeOverlay({
@@ -119,7 +142,21 @@ export function createCanvasModeOverlay({
 	seedAssets,
 	brandKit: brandKitDefinition,
 	templates,
+	assetUploader,
+	recoveryAdapter: recoveryAdapterOption,
+	headerPlugins: headerPluginsOption,
+	autoSave,
 }: CreateCanvasModeOverlayOptions): () => React.JSX.Element | null {
+	// Default export header plugin, created lazily on first overlay render and
+	// then shared across opens (recompile re-registers the same plugin object,
+	// so factory-level resources are deliberately shared). Lazy so constructing
+	// the plugin stays side-effect-free — hosts and tests that never open the
+	// overlay never touch the editor's export surface.
+	let defaultHeaderPlugins: readonly CanvasHeaderPlugin[] | null = null;
+	const getDefaultHeaderPlugins = (): readonly CanvasHeaderPlugin[] => {
+		defaultHeaderPlugins ??= [createCanvasExportPlugin()];
+		return defaultHeaderPlugins;
+	};
 	function CanvasModeOverlay() {
 		const state = useSyncExternalStore(
 			modeStore.subscribe,
@@ -208,6 +245,36 @@ export function createCanvasModeOverlay({
 		);
 		const msg = useMsg();
 
+		// PRD 0012 §15.16: bridge the plugin's storage-shaped adapter
+		// (`save(designId, ir)`) to the editor's persistence contract so the
+		// built-in save pipeline (save pill, dirty state, auto-save, flush,
+		// beforeunload guard) runs in the overlay. Saves key by the overlay's
+		// designId — the same key `adapter.load` uses — never by `ir.id`, so a
+		// legacy stored IR with a divergent id round-trips to the same record.
+		const designId = state.open ? state.designId : null;
+		const persistenceAdapter = useMemo<EditorPersistenceAdapter | undefined>(
+			() =>
+				designId
+					? {
+							save: async ({ ir }) => {
+								await Promise.resolve(adapter.save(designId, ir));
+								return {};
+							},
+						}
+					: undefined,
+			[designId],
+		);
+		// FR-164: default to the editor's IndexedDB recovery store. The overlay
+		// is client-only, but jsdom lacks IndexedDB — guard so tests and exotic
+		// embedders degrade to "no recovery" instead of throwing.
+		const recoveryAdapter = useMemo<CanvasRecoveryAdapter | undefined>(() => {
+			if (recoveryAdapterOption === false) return undefined;
+			if (recoveryAdapterOption) return recoveryAdapterOption;
+			return typeof indexedDB === "undefined"
+				? undefined
+				: createIndexedDbRecoveryAdapter();
+		}, []);
+
 		if (!state.open) return null;
 		if (!initialIR) {
 			return (
@@ -272,6 +339,14 @@ export function createCanvasModeOverlay({
 					onPickAsset={onPickAsset}
 					// Host template catalog for the Templates dock panel.
 					templates={templates}
+					// §15.16 adapter wiring: built-in save pipeline (pill, dirty
+					// state, auto-save, beforeunload), local recovery, upload
+					// surfaces, and the export dialog now run inside the overlay.
+					{...(persistenceAdapter ? { persistenceAdapter } : {})}
+					{...(recoveryAdapter ? { recoveryAdapter } : {})}
+					{...(assetUploader ? { assetUploader } : {})}
+					headerPlugins={headerPluginsOption ?? getDefaultHeaderPlugins()}
+					{...(autoSave !== undefined ? { autoSave } : {})}
 					{...(state.artboardId &&
 					initialIR.pages.some((p) => p.id === state.artboardId)
 						? { initialActivePageId: state.artboardId }
