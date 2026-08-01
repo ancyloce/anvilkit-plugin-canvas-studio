@@ -1,4 +1,8 @@
-import { createCanvasIR, createPage } from "@anvilkit/canvas-core";
+import {
+	CANVAS_IR_VERSION,
+	createCanvasIR,
+	createPage,
+} from "@anvilkit/canvas-core";
 import { describe, expect, it } from "vitest";
 import {
 	buildCanvasSnapshotExportMeta,
@@ -22,7 +26,10 @@ describe("buildCanvasSnapshotMeta", () => {
 			id: "snap1",
 			designId: "d1",
 			savedAt: "2026-07-13T00:00:00.000Z",
-			irVersion: "2",
+			// Bound to the canonical constant, not a literal: `buildCanvasSnapshotMeta`
+			// passes `ir.version` straight through, so a hardcoded version goes stale
+			// on every CANVAS_IR_VERSION bump (this assertion broke on 2 → 3).
+			irVersion: CANVAS_IR_VERSION,
 			assetIds: [],
 			exportMeta: { pageCount: 1, variants: [] },
 		});

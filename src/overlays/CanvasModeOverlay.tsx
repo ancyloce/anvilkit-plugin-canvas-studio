@@ -239,8 +239,16 @@ export function createCanvasModeOverlay({
 		// Full-viewport host for the editor shell. `<CanvasWorkspace>`'s root is
 		// `h-full` and brings its own themed `bg-background`, so the overlay only
 		// owns the fixed positioning + stacking context.
+		//
+		// z-index MUST stay below the `@anvilkit/ui` popover layer (z-50). The
+		// editor's Selects and colour pickers portal to `document.body` at z-50,
+		// so an overlay ABOVE that paints over every one of them — the dropdown
+		// mounts, is correctly sized, and is completely hidden behind the editor.
+		// 40 clears Puck's interactive chrome (which tops out at z-10; its z-50
+		// and z-9999 layers are `pointer-events-none` decorations) while leaving
+		// the popover layer on top, where it belongs.
 		const overlayStyle = useMemo(
-			() => ({ position: "fixed", inset: 0, zIndex: 100 }) as const,
+			() => ({ position: "fixed", inset: 0, zIndex: 40 }) as const,
 			[],
 		);
 		const msg = useMsg();
