@@ -42,7 +42,7 @@
 	"peerDependencies": {
 		"@anvilkit/canvas-core": "workspace:*",
 		"@anvilkit/canvas-editor": "workspace:*",
-		"@puckeditor/core": "^0.22.4",
+		"@puckeditor/core": "^0.23.0",
 		"react": ">=19.0.0",
 		"react-dom": ">=19.0.0"
 	},
@@ -50,7 +50,7 @@
 		"@anvilkit/core": "workspace:*",
 		"@anvilkit/design-block": "workspace:*",
 		"@anvilkit/plugin-asset-manager": "workspace:*",
-		"lucide-react": "^1.28.0"
+		"lucide-react": "^1.30.0"
 	},
 	"scripts": {
 		"build": "rslib build --lib esm && rslib build --lib cjs --no-clean",
@@ -69,14 +69,14 @@
 		"@anvilkit/canvas-editor": "workspace:*",
 		"@anvilkit/typescript-config": "workspace:*",
 		"@anvilkit/vitest-config": "workspace:*",
-		"@puckeditor/core": "^0.22.4",
+		"@puckeditor/core": "^0.23.0",
 		"@rslib/core": "^0.23.2",
 		"@testing-library/react": "^16.3.2",
-		"@types/node": "^26.1.1",
-		"@types/react": "^19.2.17",
-		"@types/react-dom": "19.2.3",
+		"@types/node": "^26.2.0",
+		"@types/react": "^19.2.18",
+		"@types/react-dom": "19.2.4",
 		"konva": "^10.3.0",
-		"publint": "^0.3.22",
+		"publint": "^0.3.23",
 		"react": "^19.2.8",
 		"react-dom": "^19.2.8",
 		"typescript": "7.0.2",
